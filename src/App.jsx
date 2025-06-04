@@ -1,7 +1,7 @@
 // src/App.jsx
 import React from "react";
 import { useAuth0 } from "@auth0/auth0-react";
-import CompanyLogo from "./assets/company-logo.png"; // adjust path if needed
+import CompanyLogo from "./assets/logolatest.png"; // adjust path if needed
 
 export default function App() {
   const {

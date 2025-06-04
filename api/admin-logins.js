@@ -1,5 +1,9 @@
 // api/admin-logins.js
+import axios from "axios";
+import qs from "qs";
+import { getSession } from "@auth0/nextjs-auth0"; // if you’re checking roles
 import { MongoClient } from "mongodb";
+
 
 let cachedClient = null;
 async function connectToDatabase() {
