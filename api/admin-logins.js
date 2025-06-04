@@ -1,17 +1,13 @@
 // api/admin-logins.js
-import axios from "axios";
-import qs from "qs";
-import { getSession } from "@auth0/nextjs-auth0"; // if you’re checking roles
 import { MongoClient } from "mongodb";
-
 
 let cachedClient = null;
 async function connectToDatabase() {
     if (cachedClient) return cachedClient;
-    const client = new MongoClient(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    });
+    if (!process.env.MONGODB_URI) {
+    throw new Error("Missing MONGODB_URI environment variable");
+    }
+    const client = new MongoClient(process.env.MONGODB_URI);
     await client.connect();
     cachedClient = client;
     return client;
@@ -24,8 +20,7 @@ export default async function handler(req, res) {
 
     try {
     const client = await connectToDatabase();
-    const db = client.db();
-    // Fetch the last 100 login events, sorted by timestamp descending
+    const db = client.db("cody_admin");
     const events = await db
         .collection("login_events")
         .find({})
