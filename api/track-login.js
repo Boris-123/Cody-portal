@@ -7,7 +7,6 @@ async function connectToDatabase() {
     if (!process.env.MONGODB_URI) {
     throw new Error("Missing MONGODB_URI environment variable");
     }
-  // No extra options needed with MongoDB driver >= 4.x
     const client = new MongoClient(process.env.MONGODB_URI);
     await client.connect();
     cachedClient = client;
@@ -25,7 +24,7 @@ export default async function handler(req, res) {
 
     try {
     const client = await connectToDatabase();
-    const db = client.db(); // uses the database name from your MONGODB_URI
+    const db = client.db("cody_admin"); // ← explicitly target cody_admin
     await db.collection("login_events").insertOne({
         userId,
         email,
