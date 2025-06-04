@@ -30,7 +30,7 @@ export default function App() {
       <div className="login‐container">
         <div className="login‐card">
           <img src={CompanyLogo} alt="Company Logo" />
-          <h1>Welcome to Polaris Bot</h1>
+          <h1>Welcome to Polaris</h1>
           <p>Securely log in to access our AI chat assistant.</p>
           <button
             className="login‐button"
