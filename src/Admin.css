@@ -1,0 +1,193 @@
+/* 文件路径：src/Admin.css */
+
+/* 全局背景和字体 */
+body {
+  margin: 0;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f1f5f9;
+  color: #1e293b;
+}
+
+.admin-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* 头部样式 */
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #1f2937;
+  color: white;
+  padding: 1rem 2rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+}
+
+.admin-logo {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  margin-right: 1rem;
+  border-radius: 4px;
+  background-color: white;
+  padding: 4px;
+}
+
+.admin-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.logout-btn {
+  background-color: #e53e3e;
+  color: white;
+  border: none;
+  padding: 0.6rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.logout-btn:hover {
+  background-color: #c53030;
+}
+
+/* 主内容区域 */
+.admin-main {
+  flex: 1;
+  padding: 2rem;
+}
+
+.admin-section {
+  background-color: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.admin-section h2 {
+  margin-top: 0;
+  color: #1e293b;
+}
+
+/* 提示信息 */
+.admin-feedback {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.admin-feedback.loading {
+  background-color: #e2e8f0;
+  color: #334155;
+}
+
+.admin-feedback.error {
+  background-color: #fed7d7;
+  color: #9b2c2c;
+}
+
+/* 登录事件表格 */
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.admin-table th,
+.admin-table td {
+  border: 1px solid #e2e8f0;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.admin-table th {
+  background-color: #f1f5f9;
+  font-weight: 600;
+  color: #334155;
+}
+
+.admin-table tr:nth-child(even) {
+  background-color: #fafafa;
+}
+
+/* 刷新按钮 */
+.refresh-btn {
+  margin-top: 1rem;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.refresh-btn:hover {
+  background-color: #2563eb;
+}
+
+.refresh-btn:disabled {
+  background-color: #93c5fd;
+  cursor: not-allowed;
+}
+
+/* Max-Users 控制区域 */
+.max-users-control {
+  display: flex;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.max-users-control input[type="number"] {
+  width: 80px;
+  padding: 0.4rem;
+  font-size: 1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  margin-right: 1rem;
+}
+
+.save-btn {
+  background-color: #10b981;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.save-btn:hover {
+  background-color: #059669;
+}
+
+.save-btn:disabled {
+  background-color: #6ee7b7;
+  cursor: not-allowed;
+}
+
+/* 页脚 */
+.admin-footer {
+  text-align: center;
+  padding: 1rem;
+  background-color: #f1f5f9;
+  color: #475569;
+  font-size: 0.9rem;
+  border-top: 1px solid #e2e8f0;
+}

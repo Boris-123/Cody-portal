@@ -1,42 +1,173 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+/* src/App.css */
+
+/* 1. 登录页面整体背景 */
+:root {
+  --login-bg: url("https://static.wixstatic.com/media/5bfb6f_b4c53ed3cc1c426aa8ea180798bc870f.jpeg/v1/fill/w_1904,h_1050,al_c,q_90,enc_avif,quality_auto/5bfb6f_b4c53ed3cc1c426aa8ea180798bc870f.jpeg0");
+  /* ↑ 将上面 URL 替换为你选中图像的真实链接，如 turn0image0 对应的 URL */
+}
+
+/* 全局重置和基础 */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+}
+
+/* 2. 登录容器：铺满整屏，显示渐变叠加背景 */
+.login-container {
+  position: relative;
+  height: 100vh;
+  width: 100%;
+  background: 
+    /* 浅色半透明叠加，提高可读性 */
+    linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)),
+    var(--login-bg) center/cover no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 3. 登录卡片：加大尺寸、柔和阴影 */
+.login-card {
+  background-color: rgba(255, 255, 255, 0.95);
+  width: 420px;           /* 放大宽度 */
+  max-width: 90%;
+  padding: 2.5rem 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.12);
   text-align: center;
+  position: relative;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+/* 4. Logo：增大至 120px，同时加圆角效果 */
+.login-card img {
+  height: 120px;          /* 从 80px 放大到 120px */
+  width: auto;
+  margin: 0 auto 1.5rem;
+  display: block;
+  border-radius: 50%;     /* 保持圆形 Logo */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
+/* 5. 标题文字：更大字体、加粗 */
+.login-card h1 {
+  font-size: 2rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.5rem;
+}
+
+/* 6. 文本说明：微调行高和颜色 */
+.login-card p {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #4b5563;
+  margin-bottom: 2rem;
+}
+
+/* 7. 登录按钮：高亮蓝色，微圆角 */
+.login-button {
+  background-color: #1e40af;
+  color: #ffffff;
+  border: none;
+  padding: 0.875rem 2rem;
+  border-radius: 6px;
+  font-size: 1.05rem;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(30, 64, 175, 0.2);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.login-button:hover {
+  background-color: #1e3aab;
+  box-shadow: 0 8px 20px rgba(30, 58, 171, 0.25);
+}
+
+.login-button:active {
+  background-color: #1e3296;
+  box-shadow: 0 4px 12px rgba(30, 50, 150, 0.2);
+}
+
+/* 8. 底部版权注脚 */
+.login-card .footer-text {
+  font-size: 0.85rem;
+  color: #9ca3af;
+  margin-top: 1.5rem;
+}
+
+/* 9. 登录后顶部 Header 保持与卡片风格一致 */
+header {
+  background-color: #1e40af;
+  color: #ffffff;
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+header strong {
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+header button {
+  background-color: #f87171;
+  color: #ffffff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+header button:hover {
+  background-color: #ef4444;
+}
+
+header button:active {
+  background-color: #dc2626;
+}
+
+/* 10. Iframe 容器 */
+main {
+  flex: 1;
+  padding: 1rem;
+  background-color: #f4f6f8;
+}
+
+/* 11. 响应式调整（屏幕窄时卡片稍微变窄） */
+@media (max-width: 450px) {
+  .login-card {
+    width: 95%;
+    padding: 2rem 1rem;
   }
-  to {
-    transform: rotate(360deg);
+
+  .login-card img {
+    height: 100px;
+    margin-bottom: 1rem;
   }
-}
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
+  .login-card h1 {
+    font-size: 1.75rem;
   }
-}
 
-.card {
-  padding: 2em;
-}
+  .login-card p {
+    font-size: 0.95rem;
+  }
 
-.read-the-docs {
-  color: #888;
+  .login-button {
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 1rem;
+  }
 }
