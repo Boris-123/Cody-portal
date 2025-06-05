@@ -1,17 +1,18 @@
-<!-- 文件路径：cody-portal/index.html -->
+<!-- 文件路径：cody-portal/public/index.html -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Polaris Admin</title>
-    <!-- 如果需要 favicon，可自行替换下面这行 -->
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <!-- 如果需要自定义 favicon，可以把下面这行改成你的 logo 引用 -->
+    <link rel="icon" href="D:\NUS\PIAS\cody-portal\src\assets\logolatest.jpg" />
   </head>
   <body>
-    <!-- React 会在这里把内容渲染进来 -->
+    <!-- React 会把应用挂在到这个 div 上 -->
     <div id="root"></div>
-    <!-- Vite 会在构建/开发时自动注入此脚本 -->
+
+    <!-- Vite 在开发/构建时，会自动把 main.jsx 注入到这里 -->
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
