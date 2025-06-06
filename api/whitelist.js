@@ -1,4 +1,6 @@
+// -------------------------------
 // api/whitelist.js
+// -------------------------------
 
 import { connectToDatabase } from "../src/utils/mongoDB.js";
 
@@ -8,7 +10,6 @@ export default async function handler(req, res) {
 
   if (req.method === "GET") {
     try {
-      // 从 settings 集合读取 {_id: "whitelist", value: [emails]}
       const doc = await db.collection("settings").findOne({ _id: "whitelist" });
       const list = doc ? doc.value : [];
       return res.status(200).json({ whitelist: list });
@@ -17,7 +18,6 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: "Internal Server Error" });
     }
   } else if (req.method === "PUT") {
-    // body = { whitelist: [ "email1", "email2", ... ] }
     const { whitelist } = req.body;
     if (!Array.isArray(whitelist)) {
       return res.status(400).json({ error: "Invalid whitelist format" });
