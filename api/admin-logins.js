@@ -21,9 +21,8 @@ export default async function handler(req, res) {
     }
 
     try {
-    // 2) 连接到 MongoDB
-    const client = await connectToDatabase();
-    const db = client.db("cody_admin");
+    // 2) 连接到 MongoDB，connectToDatabase() 已经返回 { client, db }
+    const { db } = await connectToDatabase();
 
     // 3) 拉取所有登录事件，并按 timestamp 倒序排序
     const events = await db
