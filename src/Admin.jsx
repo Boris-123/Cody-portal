@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import "./Admin.css";
-import CompanyLogo from "./assets/company-logo.png";
+import CompanyLogo from "./assets/logolatest.jpg";
 
 /**
  * Polaris Admin Dashboard
