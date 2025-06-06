@@ -1,126 +1,86 @@
 // src/Admin.jsx
-
-import React, { useEffect, useState, useCallback } from "react";
-import { useAuth0 } from "@auth0/auth0-react"; 
-import CompanyLogo from "./assets/company-logo.png"; // 公司 Logo
-import "./Admin.css"; // 引入样式
+import React, { useState, useEffect, useCallback } from "react";
+import { useAuth0 } from "@auth0/auth0-react";
+import "./Admin.css"; // 引入对应样式
+import CompanyLogo from "./assets/company-logo.png";
 
 /**
- * Admin 组件：只有白名单邮箱才能访问
+ * Polaris Admin Dashboard
  *
  * 功能：
- * 1. 判断用户是否正在加载（isLoading）。
- * 2. 如果未登录，则自动跳转 Auth0 登录。
- * 3. 登录后，检查 user.email 是否在 allowedEmails 列表里。
- *    - 如果不在白名单，显示 “Access Denied”。
- *    - 如果在白名单，则展示后台仪表盘：
- *      3.1. “Unique Users Logged In” 列表（带 Refresh 按钮）。
- *      3.2. 当前 unique 用户数统计。
- *      3.3. “Max Users Limit” 输入框 & 保存按钮（Save Limit）。
- *      3.4. 页面顶部有 “Logout” 按钮，点击可登出并返回 Auth0 重定向地址。
- * 4. 各个网络请求都有 loading 和 error 状态处理。
+ * 1. 登录后才能访问（由 App.jsx 中路由保护）
+ * 2. 点击左上角 Logo 返回首页（“Return to Bot”）
+ * 3. 右上角显示 “Log Out” 按钮
+ * 4. “Search Username” 输入框：可以根据用户名（email 前缀）搜索
+ * 5. “Refresh Now” 按钮：刷新当前登录事件列表
+ * 6. 显示 “Current Login Events” 表格：列包含 Username、Email、When、Location(IP)
+ * 7. “Max-Users Limit” 区块：展示当前 unique count，并可修改最大用户数
  */
 
 export default function Admin() {
-  // 1. Auth0 Hook：获取用户信息、登录状态、登出方法等
-  const {
-    isAuthenticated,
-    isLoading,
-    user,
-    loginWithRedirect,
-    logout,
-  } = useAuth0();
+  const { logout } = useAuth0();
+  const { user, isAuthenticated } = useAuth0();
+  const allowedAdmins = ["edy.hartono.pias@gmail.com","borisyinjia2005@outlook.com"]; // 例
+  if (!isAuthenticated || !allowedAdmins.includes(user.email)) {
+  return <div>Access Denied</div>;
+}
 
-  // 2. 白名单邮箱列表（只有此列表中的邮箱可访问 Admin 页面）
-  const allowedEmails = ["edy.hartono.pias@gmail.com", "borisyinjia2005@outlook.com"]; // 请将此行替换为老板的实际邮箱
 
-  // 3. 页面状态声明
-  // 登录事件列表：{ userId, email, timestamp, location }
+  // 登录事件列表、loading 与错误状态
   const [events, setEvents] = useState([]);
-  // 去重后有多少 unique user
-  const [uniqueCount, setUniqueCount] = useState(0);
-  // maxUsers（后台存储的限制值，用字符串保存，方便绑定到 <input>）
-  const [maxUsers, setMaxUsers] = useState("");
-  // 各种 loading / saving 状态
   const [loadingEvents, setLoadingEvents] = useState(false);
+  const [errorEvents, setErrorEvents] = useState("");
+
+  // 用户名搜索关键字（email 前缀）
+  const [searchKeyword, setSearchKeyword] = useState("");
+
+  // 过滤后要显示在页面上的事件
+  const filteredEvents = events.filter((ev) => {
+    // 从 email 中提取前缀
+    const username = ev.email.split("@")[0] || "";
+    return username.toLowerCase().includes(searchKeyword.toLowerCase());
+  });
+
+  // uniqueCount、maxUsers 及其 loading/saving/错误状态
+  const [uniqueCount, setUniqueCount] = useState(0);
+  const [maxUsers, setMaxUsers] = useState("");
   const [loadingMax, setLoadingMax] = useState(false);
   const [savingMax, setSavingMax] = useState(false);
-  // 错误信息
-  const [errorMsg, setErrorMsg] = useState("");
+  const [errorMax, setErrorMax] = useState("");
 
-  // 4. 如果 Auth0 仍在加载，先展示 Loading
-  if (isLoading) {
-    return (
-      <div className="admin-container">
-        <header className="admin-header">
-          <img src={CompanyLogo} alt="Company Logo" className="admin-logo" />
-          <h1>Polaris Admin Dashboard</h1>
-        </header>
-        <main className="admin-main">
-          <div className="loading">Loading...</div>
-        </main>
-      </div>
-    );
-  }
-
-  // 5. 如果未登录，自动调用 Auth0 登录
-  if (!isAuthenticated) {
-    loginWithRedirect();
-    return null; // 等待登录完成
-  }
-
-  // 6. 如果登录但邮箱不在白名单里，展示 Access Denied
-  if (!allowedEmails.includes(user.email)) {
-    return (
-      <div className="admin-container">
-        <header className="admin-header">
-          <img src={CompanyLogo} alt="Company Logo" className="admin-logo" />
-          <h1>Polaris Admin Dashboard</h1>
-          <button
-            className="logout-btn"
-            onClick={() => logout({ returnTo: window.location.origin })}
-          >
-            Log Out
-          </button>
-        </header>
-        <main className="admin-main">
-          <div className="access-denied">
-            Access Denied. You are not authorized to view this page.
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  // 7. 拉取 “login events” 列表的函数
+  // -------- 拉取登录事件列表 --------
   const fetchEvents = useCallback(async () => {
     setLoadingEvents(true);
-    setErrorMsg("");
+    setErrorEvents("");
     try {
-      const resp = await fetch("/api/admin-logins"); // 后端 API：获取所有登录事件
+      const resp = await fetch("/api/admin-logins");
       if (!resp.ok) {
         throw new Error(`Status ${resp.status}`);
       }
       const data = await resp.json();
       setEvents(data);
 
-      // 计算 unique users 数量
-      const uniqueSet = new Set(data.map((evt) => evt.userId));
+      // 计算 unique username 数量
+      const uniqueSet = new Set(
+        data.map((ev) => ev.email.split("@")[0] || "")
+      );
       setUniqueCount(uniqueSet.size);
     } catch (err) {
       console.error("Failed to fetch login events:", err);
-      setErrorMsg("Failed to fetch login events. Please try again.");
+      setErrorEvents("Failed to fetch login events. Please try again.");
+      setEvents([]);
+      setUniqueCount(0);
     } finally {
       setLoadingEvents(false);
     }
   }, []);
 
-  // 8. 拉取当前 maxUsers 限制值的函数
+  // -------- 拉取当前 maxUsers 值 --------
   const fetchMaxUsers = useCallback(async () => {
     setLoadingMax(true);
-    setErrorMsg("");
+    setErrorMax("");
     try {
-      const resp = await fetch("/api/max-users"); // 后端 API：获取当前最大用户数
+      const resp = await fetch("/api/max-users");
       if (!resp.ok) {
         throw new Error(`Status ${resp.status}`);
       }
@@ -128,42 +88,43 @@ export default function Admin() {
       setMaxUsers(body.max.toString());
     } catch (err) {
       console.error("Failed to fetch maxUsers:", err);
-      setErrorMsg("Failed to fetch max users. Please try again.");
+      setErrorMax("Failed to fetch max-users. Please reload and try again.");
+      setMaxUsers("");
     } finally {
       setLoadingMax(false);
     }
   }, []);
 
-  // 9. 保存新的 maxUsers 限制值的函数
+  // -------- 保存新的 maxUsers --------
   const saveMaxUsers = async () => {
+    const newMax = parseInt(maxUsers, 10);
+    if (isNaN(newMax) || newMax < 0) {
+      setErrorMax("Please enter a non-negative integer.");
+      return;
+    }
     setSavingMax(true);
-    setErrorMsg("");
+    setErrorMax("");
     try {
-      const newVal = parseInt(maxUsers, 10);
-      if (isNaN(newVal) || newVal < 0) {
-        setErrorMsg("Please enter a valid non-negative number for Max Users.");
-        setSavingMax(false);
-        return;
-      }
       const resp = await fetch("/api/max-users", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ max: newVal }),
+        body: JSON.stringify({ max: newMax }),
       });
       if (!resp.ok) {
-        throw new Error(`Status ${resp.status}`);
+        const body = await resp.json();
+        throw new Error(body.error || `Status ${resp.status}`);
       }
-      // 如果成功，无需额外操作，只留下当前值
-      // 也可在此处弹窗提示 “Saved successfully” 等
+      // 保存成功后，重新拉取唯一用户数（不影响此处 uniqueCount）
+      await fetchMaxUsers();
     } catch (err) {
       console.error("Failed to save maxUsers:", err);
-      setErrorMsg("Failed to save max users. Please try again.");
+      setErrorMax("Failed to save. Please try again.");
     } finally {
       setSavingMax(false);
     }
   };
 
-  // 10. 组件挂载后，先拉一次数据
+  // 组件挂载后，先拉取一次
   useEffect(() => {
     fetchEvents();
     fetchMaxUsers();
@@ -171,108 +132,133 @@ export default function Admin() {
 
   return (
     <div className="admin-container">
-      {/* ------------ Header 区域 ------------ */}
+      {/* 顶部标题栏 */}
       <header className="admin-header">
         <div className="header-left">
-          <img src={CompanyLogo} alt="Company Logo" className="admin-logo" />
-          <h1>Polaris Admin Dashboard</h1>
+          <img
+            src={CompanyLogo}
+            alt="Company Logo"
+            className="header-logo"
+            onClick={() => (window.location.href = "/")}
+          />
+          <h1 className="header-title">Polaris Admin Dashboard</h1>
         </div>
-        <button
-          className="logout-btn"
-          onClick={() => logout({ returnTo: window.location.origin })}
-        >
+        <button className="btn-log-out" onClick={() => logout({ returnTo: window.location.origin })}>
           Log Out
         </button>
       </header>
 
-      {/* ------------ 全局错误提示 ------------ */}
-      {errorMsg && (
-        <div className="error-banner">
-          {errorMsg}
-        </div>
-      )}
-
+      {/* 整个主体滚动区域 */}
       <main className="admin-main">
-        {/* ====== 1. 当前登录事件列表 ====== */}
-        <section className="card">
-          <h2>1. Current Login Events</h2>
-          <p>Unique Users Logged In: {uniqueCount}</p>
-          <table className="events-table">
-            <thead>
-              <tr>
-                <th>User ID</th>
-                <th>Email</th>
-                <th>When</th>
-                <th>Location (IP)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loadingEvents ? (
-                <tr>
-                  <td colSpan="4" className="cell-loading">
-                    Loading...
-                  </td>
-                </tr>
-              ) : events.length === 0 ? (
-                <tr>
-                  <td colSpan="4" className="cell-empty">
-                    No login events yet.
-                  </td>
-                </tr>
-              ) : (
-                events.map((evt) => (
-                  <tr key={evt._id}>
-                    <td>{evt.userId}</td>
-                    <td>{evt.email}</td>
-                    <td>{new Date(evt.timestamp).toLocaleString()}</td>
-                    <td>{evt.location}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-          <button
-            className="refresh-btn"
-            onClick={fetchEvents}
-            disabled={loadingEvents}
-          >
-            Refresh Now
-          </button>
-        </section>
+        {errorEvents && (
+          <div className="alert-error">{errorEvents}</div>
+        )}
 
-        {/* ====== 2. 最大用户数 (Max-Users Limit) ====== */}
-        <section className="card">
-          <h2>2. Max-Users Limit</h2>
+        {/* 1. Current Login Events */}
+        <section className="section-block">
+          <h2 className="section-title">1. Current Login Events</h2>
           <p>
-            Set how many unique users can log in before new logins are blocked.
+            Unique Users Logged In: <strong>{uniqueCount}</strong>
           </p>
-          <div className="max-users-input-group">
-            <label htmlFor="maxUsersInput">Current Unique Count: {uniqueCount}</label>
+
+          {/* 搜索框 + 刷新按钮 */}
+          <div className="controls-row">
             <input
-              type="number"
-              id="maxUsersInput"
-              value={maxUsers}
-              onChange={(e) => setMaxUsers(e.target.value)}
-              disabled={loadingMax || savingMax}
-              min="0"
-              className="max-users-input"
+              type="text"
+              placeholder="Search Username"
+              value={searchKeyword}
+              onChange={(e) => setSearchKeyword(e.target.value)}
+              className="search-input"
+              disabled={loadingEvents}
             />
             <button
-              className="save-btn"
+              className="btn-refresh"
+              onClick={fetchEvents}
+              disabled={loadingEvents}
+            >
+              {loadingEvents ? "Refreshing..." : "Refresh Now"}
+            </button>
+          </div>
+
+          {/* 登录事件表格 */}
+          <div className="table-container">
+            <table className="events-table">
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Email</th>
+                  <th>When</th>
+                  <th>Location (IP)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredEvents.length === 0 ? (
+                  <tr>
+                    <td colSpan="4" style={{ textAlign: "center", color: "#777" }}>
+                      No login events yet.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredEvents.map((ev) => {
+                    const username = ev.email.split("@")[0] || ev.userId;
+                    const whenStr = new Date(ev.timestamp).toLocaleString([], {
+                      year: "numeric",
+                      month: "numeric",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      second: "2-digit",
+                    });
+                    return (
+                      <tr key={ev._id}>
+                        <td>{username}</td>
+                        <td>{ev.email}</td>
+                        <td>{whenStr}</td>
+                        <td>{ev.location || "–"}</td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {/* 2. Max-Users Limit */}
+        <section className="section-block">
+          <h2 className="section-title">2. Max-Users Limit</h2>
+          <p>
+            Set how many unique users can log in before new logins are blocked.{" "}
+            <span className="sm-text">(Current Unique Count: {uniqueCount})</span>
+          </p>
+          {errorMax && (
+            <div className="alert-error">{errorMax}</div>
+          )}
+
+          <div className="controls-row">
+            <input
+              type="number"
+              min="0"
+              placeholder="Enter max users"
+              value={maxUsers}
+              onChange={(e) => setMaxUsers(e.target.value)}
+              className="max-users-input"
+              disabled={loadingMax || savingMax}
+            />
+            <button
+              className="btn-save"
               onClick={saveMaxUsers}
               disabled={loadingMax || savingMax}
             >
-              {savingMax ? "Saving..." : "Save Limit"}
+              {savingMax
+                ? "Saving..."
+                : loadingMax
+                ? "Loading..."
+                : "Save Limit"}
             </button>
           </div>
-          {loadingMax && <div className="small-loading">Loading max users...</div>}
         </section>
       </main>
-
-      {/* 页脚 */}
-      <footer className="admin-footer">
-        © 2025 Polaris Admin
-      </footer>
     </div>
   );
 }
