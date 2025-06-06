@@ -3,14 +3,17 @@
 import { connectToDatabase } from "../src/utils/mongoDB.js";
 
 export default async function handler(req, res) {
-  // 连接到 MongoDB
-  const client = await connectToDatabase();
-  const db = client.db("cody_admin");
+  // 只允许 GET（取所有登录记录）或 DELETE（删除某个 userId 的所有登录记录）
+  if (req.method !== "GET" && req.method !== "DELETE") {
+    return res.status(405).json({ error: "Method Not Allowed" });
+  }
 
-  // 只允许 GET 和 DELETE
+  // 解构 connectToDatabase 返回值
+  const { db } = await connectToDatabase();
+
+  // GET: 拉取所有 login_events，按 timestamp 倒序
   if (req.method === "GET") {
     try {
-      // 取出所有登录事件，按 timestamp 倒序（最新在前面）
       const events = await db
         .collection("login_events")
         .find({})
@@ -21,8 +24,10 @@ export default async function handler(req, res) {
       console.error("admin-logins GET error:", err);
       return res.status(500).json({ error: "Internal Server Error" });
     }
-  } else if (req.method === "DELETE") {
-    // 删除指定 userId 的所有登录事件（释放名额）
+  }
+
+  // DELETE: 根据 userId 清除该 userId 的所有登录记录
+  if (req.method === "DELETE") {
     const { userId } = req.body;
     if (!userId) {
       return res.status(400).json({ error: "Missing userId" });
@@ -34,7 +39,5 @@ export default async function handler(req, res) {
       console.error("admin-logins DELETE error:", err);
       return res.status(500).json({ error: "Internal Server Error" });
     }
-  } else {
-    return res.status(405).json({ error: "Method Not Allowed" });
   }
 }
