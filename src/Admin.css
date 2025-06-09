@@ -165,3 +165,47 @@
   font-size: 0.9rem;
   color: #718096;
 }
+
+/* === 追加 / 覆盖 === */
+
+/* Block / Unblock 按钮 */
+.btn-remove-user,
+.btn-unblock {
+  background-color: #e53e3e;  /* 红 */
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-remove-user:hover,
+.btn-unblock:hover {
+  background-color: #c53030;
+}
+
+/* Add 按钮（绿色）*/
+.btn-add {
+  background-color: #48bb78; /* 绿 */
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-add:hover {
+  background-color: #38a169;
+}
+
+/* 更小的 input 复用 whitelist-input 样式 */
+.whitelist-input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.95rem;
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+  margin-right: 0.75rem;
+}
