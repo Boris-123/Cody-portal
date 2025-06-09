@@ -1,8 +1,13 @@
-/* ===== 基础 ===== */
+/* ============= 主题色 ============= */
 :root{
-  --blue:#2563eb;--blue-d:#1e40af;--gray:#64748b;--gray-d:#475569;--red:#e11d48;--red-d:#be123c;
-  --bg:#f7f9fc;--bg-dark:#111827;--box:#fff;--box-dark:#1e293b
+  --blue:#2563eb; --blue-d:#1e40af;
+  --gray:#64748b; --gray-d:#475569;
+  --red:#e11d48;  --red-d:#be123c;
+  --bg:#f7f9fc;   --bg-dark:#111827;
+  --box:#ffffff;  --box-dark:#1e293b;
 }
+
+/* ============= 布局壳 ============= */
 body{margin:0;background:var(--bg);font-family:Inter,Segoe UI,sans-serif;color:#1f2937}
 @media (prefers-color-scheme:dark){body{background:var(--bg-dark);color:#e5e7eb}}
 
@@ -10,62 +15,88 @@ body{margin:0;background:var(--bg);font-family:Inter,Segoe UI,sans-serif;color:#
 .admin-header{background:#1f2937;color:#fff;display:flex;align-items:center;gap:.8rem;padding:.75rem 1.2rem}
 .header-logo{width:40px;height:40px}
 .header-title{font-size:1.25rem;margin:0;flex:1}
-.btn-log-out{background:var(--red);color:#fff;border:none;border-radius:6px;padding:.45rem 1rem;font-size:.85rem;cursor:pointer;transition:.2s}
+.btn-log-out{background:var(--red);color:#fff;border:none;border-radius:6px;padding:.45rem 1rem;font-size:.85rem;cursor:pointer;transition:.15s}
 .btn-log-out:hover{background:var(--red-d)}
 .admin-main{flex:1;padding:1.5rem}
-
-/* ===== 卡片 ===== */
 .section-block{background:var(--box);border-radius:8px;padding:1.25rem 1.5rem;margin-bottom:2rem;box-shadow:0 1px 3px rgba(0,0,0,.06)}
 @media (prefers-color-scheme:dark){.section-block{background:var(--box-dark)}}
-.section-title{margin:0 0 .6rem;font-size:1.05rem}
+.section-title{margin:0 0 .65rem;font-size:1.05rem}
 
-/* ===== 输入 / 按钮 ===== */
-.input{height:36px;border:1px solid #cbd5e0;border-radius:6px;padding:0 .75rem;font-size:.9rem}
-.input:focus{outline:2px solid var(--blue)}
-.btn{border:none;border-radius:6px;padding:.52rem 1.1rem;font-size:.82rem;cursor:pointer;transition:background .15s,transform .15s;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+/* ============= 输入 & 按钮 ============= */
+.input,
+.input-date{
+  height:36px;border:1px solid #cbd5e0;border-radius:6px;
+  padding:0 .75rem;font-size:.9rem;background:#fff;color:#1f2937;
+}
+.input-date{width:140px}
+.input:focus,.input-date:focus{outline:2px solid var(--blue)}
+@media (prefers-color-scheme:dark){
+  .input,.input-date{background:#1f2937;color:#e5e7eb;border:#374151 1px solid}
+}
+
+.btn{border:none;border-radius:6px;padding:.52rem 1.1rem;font-size:.82rem;font-weight:500;cursor:pointer;
+     transition:background .15s,transform .15s;box-shadow:0 1px 2px rgba(0,0,0,.05)}
 .btn:active{transform:scale(.97)}
-.btn-primary{background:var(--blue);color:#fff}.btn-primary:hover{background:var(--blue-d)}
-.btn-secondary{background:var(--gray);color:#fff}.btn-secondary:hover{background:var(--gray-d)}
-.btn-danger{background:var(--red);color:#fff}.btn-danger:hover{background:var(--red-d)}
 .btn[disabled]{opacity:.5;cursor:not-allowed}
 
-/* ===== 工具行 ===== */
-.controls-row{display:flex;flex-wrap:wrap;gap:.75rem;align-items:center;margin-bottom:1rem}
-.autoref-label{margin-left:auto;display:flex;align-items:center;font-size:.85rem;gap:.35rem}
+/* 颜色变体 */
+.btn-primary{background:var(--blue);color:#fff}
+.btn-primary:hover{background:var(--blue-d)}
+.btn-secondary{background:var(--gray);color:#fff}
+.btn-secondary:hover{background:var(--gray-d)}
+.btn-danger{background:var(--red);color:#fff}
+.btn-danger:hover{background:var(--red-d)}
 
-/* ===== 表格 ===== */
+/* 尺寸变体 */
+.btn-small{padding:.3rem .8rem;font-size:.78rem}
+
+/* 具体按钮别名 */
+.btn-add           {comp: btn btn-primary}
+.btn-refresh       {comp: btn btn-primary}
+.btn-export        {comp: btn btn-secondary}
+.btn-save          {comp: btn btn-primary}
+.btn-remove-user,
+.btn-unblock,
+.btn-remove-wl     {comp: btn btn-danger btn-small}
+.btn-danger-small  {comp: btn btn-danger btn-small}
+
+/* === 将 comp: 替换为真正的继承（CSS 中无法直接继承，手动展开） === */
+.btn-add{background:var(--blue);color:#fff}
+.btn-refresh{background:var(--blue);color:#fff}
+.btn-save{background:var(--blue);color:#fff}
+.btn-add:hover,.btn-refresh:hover,.btn-save:hover{background:var(--blue-d)}
+.btn-export{background:var(--gray);color:#fff}
+.btn-export:hover{background:var(--gray-d)}
+.btn-remove-user,.btn-unblock,.btn-remove-wl,
+.btn-danger-small{
+  background:var(--red);color:#fff;padding:.3rem .8rem;font-size:.78rem}
+.btn-remove-user:hover,.btn-unblock:hover,.btn-remove-wl:hover,
+.btn-danger-small:hover{background:var(--red-d)}
+
+/* ============= 工具条 & 复选框 ============= */
+.controls-row{display:flex;flex-wrap:wrap;align-items:center;gap:.85rem;margin-bottom:1rem}
+.autoref-label{margin-left:auto;display:flex;align-items:center;gap:.4rem;font-size:.85rem}
+.btn-group{display:flex;gap:.75rem}
+
+/* ============= 表格 ============= */
 .table-container{overflow-x:auto}
 .events-table,.whitelist-table{width:100%;border-collapse:collapse;font-size:.88rem}
-.events-table th,.whitelist-table th,.events-table td,.whitelist-table td{padding:.6rem .85rem;border-bottom:1px solid #e2e8f0}
+.events-table th,.events-table td,
+.whitelist-table th,.whitelist-table td{
+  padding:.65rem .85rem;border-bottom:1px solid #e2e8f0;vertical-align:middle}
 .events-table th,.whitelist-table th{background:#f3f4f6;color:#334155;font-weight:600}
+.events-table tbody tr:hover{background:#f9fafb}
+.col-action{width:92px;text-align:center}
 @media (prefers-color-scheme:dark){
   .events-table th,.whitelist-table th{background:#374151;color:#f3f4f6}
   .events-table tbody tr:hover{background:#273045}
 }
-.events-table tbody tr:hover{background:#f9fafb}
 
-/* ===== 分页 ===== */
+/* ============= 分页 ============= */
 .pagination{display:flex;align-items:center;gap:.55rem;margin-top:.75rem;font-size:.85rem}
 .pagination button{background:#eef2f7;border:1px solid #cbd5e0;border-radius:6px;padding:.25rem .6rem}
 .pagination button[disabled]{opacity:.35;cursor:not-allowed}
-.pagination select{border:1px solid #cbd5e0;border-radius:6px;padding:.25rem .4rem}
+.pagination select{border:1px solid #cbd5e0;border-radius:6px;padding:.25rem .45rem}
 
-/* ===== Alert ===== */
+/* ============= Alert ============= */
 .alert-error{background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;border-radius:6px;padding:.8rem;margin-bottom:1rem}
-
-/* date input */
-.input-date{
-  height:36px;
-  border:1px solid #cbd5e0;
-  border-radius:6px;
-  padding:0 .75rem;
-  font-size:.9rem;
-  background:#fff;
-  color:#1f2937;
-}
-.input-date:focus{outline:2px solid #2563eb}
-
-/* 深色模式可同步补一条 */
-@media (prefers-color-scheme:dark){
-  .input-date{background:#1f2937;color:#e5e7eb;border:#374151 1px solid}
-}
