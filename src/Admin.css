@@ -1,255 +1,68 @@
-/* src/Admin.css */
+/* ========== Shell ========= */
+.admin-container{display:flex;flex-direction:column;min-height:100vh;background:#f5f7fa;font-family:Inter,Segoe UI,sans-serif}
+.admin-header{display:flex;align-items:center;justify-content:space-between;padding:.75rem 1.5rem;background:#1f2937;color:#fff;box-shadow:0 2px 4px rgba(0,0,0,.08)}
+.header-left{display:flex;align-items:center;gap:.75rem;cursor:pointer}
+.header-logo{width:40px;height:40px;object-fit:contain}
+.header-title{font-size:1.25rem;margin:0}
+.btn-log-out{background:#e53e3e;color:#fff;border:none;border-radius:6px;padding:.45rem 1rem;font-size:.85rem;cursor:pointer;transition:.15s}
+.btn-log-out:hover{background:#c53030}
+.admin-main{flex:1;padding:1.5rem}
 
-/* 整体容器，固定宽度并居中 */
-.admin-container {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  background-color: #f5f7fa;
-  font-family: Arial, sans-serif;
-}
+/* ========== Boxes ========= */
+.section-block{background:#fff;border-radius:8px;padding:1.25rem 1.5rem;margin-bottom:2rem;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.section-title{margin:0 0 .6rem;font-size:1.05rem;color:#1e293b}
 
-/* 顶部 Header */
-.admin-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: #1f2937; /* 深蓝色 */
-  color: white;
-  padding: 0.75rem 1.5rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
+/* ========== Alert ========= */
+.alert-error{background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;border-radius:6px;padding:.75rem;margin-bottom:1rem}
 
-.header-left {
-  display: flex;
-  align-items: center;
-}
+/* ========== Input / Button 基础 ========= */
+.input{height:36px;border:1px solid #cbd5e0;border-radius:6px;padding:0 .75rem;font-size:.9rem}
+.input:focus{outline:2px solid #2563eb}
+.btn{border:none;border-radius:6px;padding:.55rem 1.1rem;font-size:.84rem;cursor:pointer;transition:background .15s,transform .15s;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:#2563eb;color:#fff}
+.btn-primary:hover{background:#1e40af}
+.btn-secondary{background:#64748b;color:#fff}
+.btn-secondary:hover{background:#475569}
+.btn-danger{background:#e11d48;color:#fff}
+.btn-danger:hover{background:#be123c}
+.btn-disabled{opacity:.5;cursor:not-allowed}
 
-.header-logo {
-  width: 40px;
-  height: 40px;
-  object-fit: contain;
-  margin-right: 0.75rem;
-  cursor: pointer;
-}
+/* ========== Controls Row ========= */
+.controls-row{display:flex;flex-wrap:wrap;align-items:center;gap:.75rem;margin-bottom:1rem}
 
-.header-title {
-  font-size: 1.25rem;
-  margin: 0;
-}
+/* 日期统一外观 */
+.input-date{composes:input}
 
-/* Log Out 按钮 */
-.btn-log-out {
-  background-color: #e53e3e; /* 红色 */
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 0.5rem 0.85rem;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-.btn-log-out:hover {
-  background-color: #c53030;
-}
+/* Auto refresh label */
+.autoref-label{font-size:.85rem;display:flex;align-items:center;gap:.35rem;margin-left:auto}
 
-/* 主体区域 */
-.admin-main {
-  flex: 1;
-  padding: 1.5rem;
-}
+/* ========== Table ========= */
+.table-container{overflow-x:auto}
+.events-table, .whitelist-table{width:100%;border-collapse:collapse;font-size:.88rem}
+.events-table th,.events-table td,.whitelist-table th,.whitelist-table td{padding:.6rem .8rem;border-bottom:1px solid #e2e8f0}
+.events-table th,.whitelist-table th{background:#f1f5f9;color:#334155;font-weight:600}
+.events-table tbody tr:hover{background:#f9fafb}
 
-/* 错误提示 */
-.alert-error {
-  background-color: #ffe5e5;
-  color: #c53030;
-  padding: 0.75rem 1rem;
-  border-radius: 4px;
-  margin-bottom: 1rem;
-  border: 1px solid #fcdcbc;
-}
-
-/* 区块样式 */
-.section-block {
-  background-color: white;
-  border-radius: 6px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  margin-bottom: 2rem;
-  padding: 1.25rem 1.5rem;
-}
-
-.section-title {
-  margin-top: 0;
-  margin-bottom: 0.5rem;
-  font-size: 1.1rem;
-  color: #2d3748; /* 深灰 */
-}
-
-/* 控制行：放 搜索框 + 按钮、或 输入框 + 保存按钮 */
-.controls-row {
-  display: flex;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.search-input,
-.max-users-input {
-  flex: 1;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.95rem;
-  border: 1px solid #cbd5e0;
-  border-radius: 4px;
-  margin-right: 0.75rem;
-}
-
-.search-input:disabled,
-.max-users-input:disabled {
-  background-color: #edf2f7;
-}
-
-.btn-refresh,
-.btn-save {
-  background-color: #4299e1; /* 天蓝 */
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 0.5rem 0.9rem;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.btn-refresh:hover,
-.btn-save:hover {
-  background-color: #3182ce;
-}
-
-.btn-refresh:disabled,
-.btn-save:disabled {
-  background-color: #a0aec0;
-  cursor: not-allowed;
-}
-
-/* 表格容器，使表格溢出时出现滚动条 */
-.table-container {
-  overflow-x: auto;
-  margin-top: 0.5rem;
-}
-
-/* 登录事件列表表格 */
-.events-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.95rem;
-}
-
-.events-table th,
-.events-table td {
-  padding: 0.6rem 0.8rem;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.events-table th {
-  text-align: left;
-  background-color: #edf2f7;
-  color: #2d3748;
-  font-weight: 600;
-}
-
-.events-table tbody tr:hover {
-  background-color: #f1f5f9;
-}
-
-/* 辅助文字 */
-.sm-text {
-  font-size: 0.9rem;
-  color: #718096;
-}
-
-/* === 追加 / 覆盖 === */
-
-/* Block / Unblock 按钮 */
-.btn-remove-user,
-.btn-unblock {
-  background-color: #e53e3e;  /* 红 */
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  padding: 0.4rem 0.8rem;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.btn-remove-user:hover,
-.btn-unblock:hover {
-  background-color: #c53030;
-}
-
-/* Add 按钮（绿色）*/
-.btn-add {
-  background-color: #48bb78; /* 绿 */
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  padding: 0.45rem 0.9rem;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.btn-add:hover {
-  background-color: #38a169;
-}
-
-/* 更小的 input 复用 whitelist-input 样式 */
-.whitelist-input {
-  flex: 1;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.95rem;
-  border: 1px solid #cbd5e0;
-  border-radius: 4px;
-  margin-right: 0.75rem;
-}
-
-/* Pagination */
-.pagination{
-  display:flex;align-items:center;gap:0.5rem;margin-top:0.75rem;font-size:0.9rem
-}
-.pagination button{
-  background:#edf2f7;border:1px solid #cbd5e0;border-radius:4px;
-  padding:0.25rem 0.6rem;cursor:pointer
-}
+/* ========== Pagination ========= */
+.pagination{display:flex;align-items:center;gap:.5rem;margin-top:.75rem;font-size:.85rem}
+.pagination button{background:#edf2f7;border:1px solid #cbd5e0;border-radius:6px;padding:.25rem .6rem;cursor:pointer}
 .pagination button[disabled]{opacity:.4;cursor:not-allowed}
-.pagination select{
-  border:1px solid #cbd5e0;border-radius:4px;padding:0.25rem 0.4rem
-}
+.pagination select{border:1px solid #cbd5e0;border-radius:6px;padding:.25rem .4rem}
 
-/* Block / Unblock 按钮 */
-.btn-remove-user,.btn-unblock{
-  background:#e53e3e;color:#fff;border:none;border-radius:4px;
-  padding:0.35rem 0.8rem;font-size:0.85rem;cursor:pointer;transition:.2s
-}
-.btn-remove-user:hover,.btn-unblock:hover{background:#c53030}
-
-/* Add (Whitelist) */
-.btn-add{
-  background:#34d399;color:#fff;border:none;border-radius:4px;
-  padding:0.45rem 0.9rem;font-size:0.85rem;cursor:pointer;transition:.2s
-}
-.btn-add:hover{background:#059669}
-
-/* Edit / Save 按钮复用现有 .btn-save 样式 */
-
-/* ===== Extra buttons ===== */
-.btn-export{background:#0ea5e9;color:#fff;border:none;border-radius:4px;padding:.4rem .9rem;font-size:.82rem;cursor:pointer}
-.btn-export:hover{background:#0284c7}
-.btn-auto{background:#6b7280;color:#fff;border:none;border-radius:4px;padding:.4rem;width:34px;cursor:pointer;display:flex;align-items:center;justify-content:center}
-.btn-auto.paused{opacity:.5}
-/* dark mode */
+/* ========== Dark mode ========= */
 @media (prefers-color-scheme:dark){
   body{background:#111827;color:#e5e7eb}
-  .section-block{background:#1e293b;border:none}
-  .events-table th{background:#374151;color:#f3f4f6}
+  .section-block{background:#1e293b}
+  .events-table th,.whitelist-table th{background:#374151;color:#f3f4f6}
   .events-table tbody tr:hover{background:#273040}
-  .pagination button,.pagination select{background:#374151;color:#e5e7eb;border:1px solid #4b5563}
+  .input{background:#1f2937;color:#e5e7eb;border:#374151 1px solid}
+  .btn{box-shadow:none}
 }
 
+/* utility 合并写法 */
+.btn-add{composes:btn btn-primary}
+.btn-refresh{composes:btn btn-primary}
+.btn-export{composes:btn btn-secondary}
+.btn-remove-user,.btn-remove-wl,.btn-unblock{composes:btn btn-danger}
+.btn-save{composes:btn btn-primary}
