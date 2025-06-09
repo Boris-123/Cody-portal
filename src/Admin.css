@@ -1,68 +1,71 @@
-/* ========== Shell ========= */
-.admin-container{display:flex;flex-direction:column;min-height:100vh;background:#f5f7fa;font-family:Inter,Segoe UI,sans-serif}
-.admin-header{display:flex;align-items:center;justify-content:space-between;padding:.75rem 1.5rem;background:#1f2937;color:#fff;box-shadow:0 2px 4px rgba(0,0,0,.08)}
-.header-left{display:flex;align-items:center;gap:.75rem;cursor:pointer}
-.header-logo{width:40px;height:40px;object-fit:contain}
-.header-title{font-size:1.25rem;margin:0}
-.btn-log-out{background:#e53e3e;color:#fff;border:none;border-radius:6px;padding:.45rem 1rem;font-size:.85rem;cursor:pointer;transition:.15s}
-.btn-log-out:hover{background:#c53030}
+/* ===== 基础 ===== */
+:root{
+  --blue:#2563eb;--blue-d:#1e40af;--gray:#64748b;--gray-d:#475569;--red:#e11d48;--red-d:#be123c;
+  --bg:#f7f9fc;--bg-dark:#111827;--box:#fff;--box-dark:#1e293b
+}
+body{margin:0;background:var(--bg);font-family:Inter,Segoe UI,sans-serif;color:#1f2937}
+@media (prefers-color-scheme:dark){body{background:var(--bg-dark);color:#e5e7eb}}
+
+.admin-container{min-height:100vh;display:flex;flex-direction:column}
+.admin-header{background:#1f2937;color:#fff;display:flex;align-items:center;gap:.8rem;padding:.75rem 1.2rem}
+.header-logo{width:40px;height:40px}
+.header-title{font-size:1.25rem;margin:0;flex:1}
+.btn-log-out{background:var(--red);color:#fff;border:none;border-radius:6px;padding:.45rem 1rem;font-size:.85rem;cursor:pointer;transition:.2s}
+.btn-log-out:hover{background:var(--red-d)}
 .admin-main{flex:1;padding:1.5rem}
 
-/* ========== Boxes ========= */
-.section-block{background:#fff;border-radius:8px;padding:1.25rem 1.5rem;margin-bottom:2rem;box-shadow:0 1px 3px rgba(0,0,0,.06)}
-.section-title{margin:0 0 .6rem;font-size:1.05rem;color:#1e293b}
+/* ===== 卡片 ===== */
+.section-block{background:var(--box);border-radius:8px;padding:1.25rem 1.5rem;margin-bottom:2rem;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+@media (prefers-color-scheme:dark){.section-block{background:var(--box-dark)}}
+.section-title{margin:0 0 .6rem;font-size:1.05rem}
 
-/* ========== Alert ========= */
-.alert-error{background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;border-radius:6px;padding:.75rem;margin-bottom:1rem}
-
-/* ========== Input / Button 基础 ========= */
+/* ===== 输入 / 按钮 ===== */
 .input{height:36px;border:1px solid #cbd5e0;border-radius:6px;padding:0 .75rem;font-size:.9rem}
-.input:focus{outline:2px solid #2563eb}
-.btn{border:none;border-radius:6px;padding:.55rem 1.1rem;font-size:.84rem;cursor:pointer;transition:background .15s,transform .15s;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.input:focus{outline:2px solid var(--blue)}
+.btn{border:none;border-radius:6px;padding:.52rem 1.1rem;font-size:.82rem;cursor:pointer;transition:background .15s,transform .15s;box-shadow:0 1px 2px rgba(0,0,0,.05)}
 .btn:active{transform:scale(.97)}
-.btn-primary{background:#2563eb;color:#fff}
-.btn-primary:hover{background:#1e40af}
-.btn-secondary{background:#64748b;color:#fff}
-.btn-secondary:hover{background:#475569}
-.btn-danger{background:#e11d48;color:#fff}
-.btn-danger:hover{background:#be123c}
-.btn-disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:var(--blue);color:#fff}.btn-primary:hover{background:var(--blue-d)}
+.btn-secondary{background:var(--gray);color:#fff}.btn-secondary:hover{background:var(--gray-d)}
+.btn-danger{background:var(--red);color:#fff}.btn-danger:hover{background:var(--red-d)}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
 
-/* ========== Controls Row ========= */
-.controls-row{display:flex;flex-wrap:wrap;align-items:center;gap:.75rem;margin-bottom:1rem}
+/* ===== 工具行 ===== */
+.controls-row{display:flex;flex-wrap:wrap;gap:.75rem;align-items:center;margin-bottom:1rem}
+.autoref-label{margin-left:auto;display:flex;align-items:center;font-size:.85rem;gap:.35rem}
 
-/* 日期统一外观 */
-.input-date{composes:input}
-
-/* Auto refresh label */
-.autoref-label{font-size:.85rem;display:flex;align-items:center;gap:.35rem;margin-left:auto}
-
-/* ========== Table ========= */
+/* ===== 表格 ===== */
 .table-container{overflow-x:auto}
-.events-table, .whitelist-table{width:100%;border-collapse:collapse;font-size:.88rem}
-.events-table th,.events-table td,.whitelist-table th,.whitelist-table td{padding:.6rem .8rem;border-bottom:1px solid #e2e8f0}
-.events-table th,.whitelist-table th{background:#f1f5f9;color:#334155;font-weight:600}
+.events-table,.whitelist-table{width:100%;border-collapse:collapse;font-size:.88rem}
+.events-table th,.whitelist-table th,.events-table td,.whitelist-table td{padding:.6rem .85rem;border-bottom:1px solid #e2e8f0}
+.events-table th,.whitelist-table th{background:#f3f4f6;color:#334155;font-weight:600}
+@media (prefers-color-scheme:dark){
+  .events-table th,.whitelist-table th{background:#374151;color:#f3f4f6}
+  .events-table tbody tr:hover{background:#273045}
+}
 .events-table tbody tr:hover{background:#f9fafb}
 
-/* ========== Pagination ========= */
-.pagination{display:flex;align-items:center;gap:.5rem;margin-top:.75rem;font-size:.85rem}
-.pagination button{background:#edf2f7;border:1px solid #cbd5e0;border-radius:6px;padding:.25rem .6rem;cursor:pointer}
-.pagination button[disabled]{opacity:.4;cursor:not-allowed}
+/* ===== 分页 ===== */
+.pagination{display:flex;align-items:center;gap:.55rem;margin-top:.75rem;font-size:.85rem}
+.pagination button{background:#eef2f7;border:1px solid #cbd5e0;border-radius:6px;padding:.25rem .6rem}
+.pagination button[disabled]{opacity:.35;cursor:not-allowed}
 .pagination select{border:1px solid #cbd5e0;border-radius:6px;padding:.25rem .4rem}
 
-/* ========== Dark mode ========= */
-@media (prefers-color-scheme:dark){
-  body{background:#111827;color:#e5e7eb}
-  .section-block{background:#1e293b}
-  .events-table th,.whitelist-table th{background:#374151;color:#f3f4f6}
-  .events-table tbody tr:hover{background:#273040}
-  .input{background:#1f2937;color:#e5e7eb;border:#374151 1px solid}
-  .btn{box-shadow:none}
-}
+/* ===== Alert ===== */
+.alert-error{background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;border-radius:6px;padding:.8rem;margin-bottom:1rem}
 
-/* utility 合并写法 */
-.btn-add{composes:btn btn-primary}
-.btn-refresh{composes:btn btn-primary}
-.btn-export{composes:btn btn-secondary}
-.btn-remove-user,.btn-remove-wl,.btn-unblock{composes:btn btn-danger}
-.btn-save{composes:btn btn-primary}
+/* date input */
+.input-date{
+  height:36px;
+  border:1px solid #cbd5e0;
+  border-radius:6px;
+  padding:0 .75rem;
+  font-size:.9rem;
+  background:#fff;
+  color:#1f2937;
+}
+.input-date:focus{outline:2px solid #2563eb}
+
+/* 深色模式可同步补一条 */
+@media (prefers-color-scheme:dark){
+  .input-date{background:#1f2937;color:#e5e7eb;border:#374151 1px solid}
+}
