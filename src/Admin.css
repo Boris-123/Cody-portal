@@ -238,3 +238,18 @@
 .btn-add:hover{background:#059669}
 
 /* Edit / Save 按钮复用现有 .btn-save 样式 */
+
+/* ===== Extra buttons ===== */
+.btn-export{background:#0ea5e9;color:#fff;border:none;border-radius:4px;padding:.4rem .9rem;font-size:.82rem;cursor:pointer}
+.btn-export:hover{background:#0284c7}
+.btn-auto{background:#6b7280;color:#fff;border:none;border-radius:4px;padding:.4rem;width:34px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.btn-auto.paused{opacity:.5}
+/* dark mode */
+@media (prefers-color-scheme:dark){
+  body{background:#111827;color:#e5e7eb}
+  .section-block{background:#1e293b;border:none}
+  .events-table th{background:#374151;color:#f3f4f6}
+  .events-table tbody tr:hover{background:#273040}
+  .pagination button,.pagination select{background:#374151;color:#e5e7eb;border:1px solid #4b5563}
+}
+
