@@ -1,38 +1,28 @@
-import React, {
-  useState,
-  useEffect,
-  useCallback,
-  useMemo,
-} from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import CompanyLogo from "./assets/logolatest.jpg";
 import "./Admin.css";
 
-/*───────────────────────────────────────────────
-  Polaris Admin Dashboard · 2025-06-11
-───────────────────────────────────────────────*/
-
 export default function Admin() {
-  /* ---------- Auth ---------- */
+  /* ========== Auth ========== */
   const { logout } = useAuth0();
 
-  /* ---------- Login events ---------- */
-  const [events, setEvents]        = useState([]);
-  const [loadingEv, setLoadingEv]  = useState(false);
-  const [search, setSearch]        = useState("");
-  const [from, setFrom]            = useState("");
-  const [to, setTo]                = useState("");
-  const [rowsPerPage, setRows]     = useState(10);
-  const [page, setPage]            = useState(1);
-  const [sort, setSort]            = useState({ col: "timestamp", asc: false });
-  const [auto, setAuto]            = useState(true);
+  /* ========== Login events state ========== */
+  const [events, setEvents] = useState([]);
+  const [loadingEv, setLoadingEv] = useState(false);
+  const [search, setSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [rowsPerPage, setRows] = useState(10);
+  const [page, setPage] = useState(1);
+  const [sort, setSort] = useState({ col: "timestamp", asc: false });
+  const [auto, setAuto] = useState(true);
 
   const fetchEvents = useCallback(async () => {
     setLoadingEv(true);
     try {
       const r = await fetch("/api/admin-logins");
-      if (!r.ok) throw new Error();
-      setEvents(await r.json());
+      setEvents(r.ok ? await r.json() : []);
     } catch {
       setEvents([]);
     } finally {
@@ -40,45 +30,36 @@ export default function Admin() {
     }
   }, []);
 
-  /* initial + auto refresh */
   useEffect(() => {
     fetchEvents();
     if (!auto) return;
-    const id = setInterval(fetchEvents, 30_000);
+    const id = setInterval(fetchEvents, 30000);
     return () => clearInterval(id);
   }, [auto, fetchEvents]);
 
-  /* filter & sort */
   const filtered = useMemo(() => {
     const s = search.toLowerCase();
     return events
       .filter((e) => {
         if (s && !e.email.split("@")[0].toLowerCase().includes(s)) return false;
-        const d = new Date(e.timestamp);
-        if (from && d < new Date(from)) return false;
-        if (to && d > new Date(to + "T23:59:59")) return false;
+        if (dateFrom && new Date(e.timestamp) < new Date(dateFrom)) return false;
+        if (dateTo && new Date(e.timestamp) > new Date(dateTo + "T23:59:59")) return false;
         return true;
       })
       .sort((a, b) => {
         const dir = sort.asc ? 1 : -1;
-        if (sort.col === "username")
-          return dir * a.email.localeCompare(b.email);
-        if (sort.col === "ip")
-          return dir * (a.location || "").localeCompare(b.location || "");
+        if (sort.col === "username") return dir * a.email.localeCompare(b.email);
+        if (sort.col === "ip") return dir * (a.location || "").localeCompare(b.location || "");
         return dir * (new Date(a.timestamp) - new Date(b.timestamp));
       });
-  }, [events, search, from, to, sort]);
+  }, [events, search, dateFrom, dateTo, sort]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
-  const current   = filtered.slice(
-    (page - 1) * rowsPerPage,
-    page * rowsPerPage
-  );
+  const current = filtered.slice((page - 1) * rowsPerPage, page * rowsPerPage);
   const uniqueCnt = new Set(events.map((e) => e.email.split("@")[0])).size;
   const toggleSort = (col) =>
     setSort((s) => ({ col, asc: s.col === col ? !s.asc : true }));
 
-  /* CSV export */
   const exportCsv = () => {
     const rows = ["Username,Email,When,IP"];
     filtered.forEach((e) =>
@@ -98,7 +79,7 @@ export default function Admin() {
     URL.revokeObjectURL(url);
   };
 
-  /* ---------- Max-Users ---------- */
+  /* ========== Max-Users ========== */
   const [maxUsers, setMaxUsers] = useState("");
   const fetchMax = async () => {
     try {
@@ -110,7 +91,7 @@ export default function Admin() {
   };
   useEffect(fetchMax, []);
 
-  /* ---------- Whitelist ---------- */
+  /* ========== Whitelist ========== */
   const [whitelist, setWhitelist] = useState([]);
   const fetchWL = async () => {
     try {
@@ -122,7 +103,7 @@ export default function Admin() {
   };
   useEffect(fetchWL, []);
 
-  /* ---------- Blocked ---------- */
+  /* ========== Blocked ========== */
   const [blocked, setBlocked] = useState([]);
   const fetchBL = async () => {
     try {
@@ -134,16 +115,23 @@ export default function Admin() {
   };
   useEffect(fetchBL, []);
 
-  /* ---------- Render ---------- */
+  /* ------ column width style helpers ------ */
+  const colUser = { width: "25%" };
+  const colEmail = { width: "35%" };
+  const colWhen = { width: "20%" };
+  const colIP = { width: "15%" };
+  const colAct = { width: 92, textAlign: "center" };
+
+  /* ========== Render ========== */
   return (
     <div className="admin-container">
-      {/* Header */}
+      {/* ── header ── */}
       <header className="admin-header">
         <div
           className="header-left"
           onClick={() => (window.location.href = "/")}
         >
-          <img src={CompanyLogo} alt="logo" className="header-logo" />
+          <img src={CompanyLogo} alt="" className="header-logo" />
           <h1 className="header-title">Polaris Admin Dashboard</h1>
         </div>
         <button
@@ -158,7 +146,7 @@ export default function Admin() {
         {/* 1 ─ Login events */}
         <section className="section-block">
           <h2 className="section-title">1. Current Login Events</h2>
-          <p className="sm-text">
+          <p style={{ marginTop: 0, marginBottom: "0.5rem", fontSize: ".9rem" }}>
             Unique Users Logged In: <strong>{uniqueCnt}</strong>
           </p>
 
@@ -172,17 +160,17 @@ export default function Admin() {
             />
             <input
               type="date"
-              className="input-date"
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
+              className="input input-date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
             />
             <input
               type="date"
-              className="input-date"
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
+              className="input input-date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
             />
-            <div className="btn-group">
+            <div style={{ display: "flex", gap: ".75rem" }}>
               <button
                 className="btn btn-primary"
                 onClick={fetchEvents}
@@ -206,24 +194,32 @@ export default function Admin() {
 
           {/* table */}
           <div className="table-container">
-            <table className="events-table">
+            <table className="events-table" style={{ tableLayout: "fixed" }}>
               <thead>
                 <tr>
-                  <th onClick={() => toggleSort("username")}>Username</th>
-                  <th>Email</th>
-                  <th onClick={() => toggleSort("timestamp")}>When</th>
-                  <th onClick={() => toggleSort("ip")}>IP</th>
-                  <th className="col-action">Action</th>
+                  <th style={colUser} onClick={() => toggleSort("username")}>
+                    Username
+                  </th>
+                  <th style={colEmail}>Email</th>
+                  <th style={colWhen} onClick={() => toggleSort("timestamp")}>
+                    When
+                  </th>
+                  <th style={colIP} onClick={() => toggleSort("ip")}>
+                    IP
+                  </th>
+                  <th style={colAct}>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {current.map((e) => (
                   <tr key={e._id}>
-                    <td>{e.email.split("@")[0]}</td>
-                    <td>{e.email}</td>
-                    <td>{new Date(e.timestamp).toLocaleString()}</td>
-                    <td>{e.location || "–"}</td>
-                    <td className="col-action">
+                    <td style={colUser}>{e.email.split("@")[0]}</td>
+                    <td style={colEmail}>{e.email}</td>
+                    <td style={colWhen}>
+                      {new Date(e.timestamp).toLocaleString()}
+                    </td>
+                    <td style={colIP}>{e.location || "–"}</td>
+                    <td style={colAct}>
                       <button
                         className="btn-danger-small"
                         onClick={async () => {
@@ -318,18 +314,18 @@ export default function Admin() {
         <section className="section-block">
           <h2 className="section-title">3. Whitelist</h2>
           <div className="table-container">
-            <table className="whitelist-table">
+            <table className="whitelist-table" style={{ tableLayout: "fixed" }}>
               <thead>
                 <tr>
-                  <th>Email</th>
-                  <th className="col-action">Action</th>
+                  <th style={colEmail}>Email</th>
+                  <th style={colAct}>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {whitelist.map((em) => (
                   <tr key={em}>
-                    <td>{em}</td>
-                    <td className="col-action">
+                    <td style={colEmail}>{em}</td>
+                    <td style={colAct}>
                       <button
                         className="btn-danger-small"
                         onClick={async () => {
@@ -363,15 +359,15 @@ export default function Admin() {
             <button
               className="btn btn-primary"
               onClick={async () => {
-                const email = document
+                const v = document
                   .getElementById("newWL")
                   .value.trim()
                   .toLowerCase();
-                if (!email || whitelist.includes(email)) return;
+                if (!v || whitelist.includes(v)) return;
                 await fetch("/api/whitelist", {
                   method: "PUT",
                   headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ whitelist: [...whitelist, email] }),
+                  body: JSON.stringify({ whitelist: [...whitelist, v] }),
                 });
                 document.getElementById("newWL").value = "";
                 fetchWL();
@@ -382,22 +378,22 @@ export default function Admin() {
           </div>
         </section>
 
-        {/* 4 ─ Blocked users */}
+        {/* 4 ─ Blocked */}
         <section className="section-block">
           <h2 className="section-title">4. Blocked Users</h2>
           <div className="table-container">
-            <table className="events-table">
+            <table className="events-table" style={{ tableLayout: "fixed" }}>
               <thead>
                 <tr>
-                  <th>Email</th>
-                  <th className="col-action">Action</th>
+                  <th style={colEmail}>Email</th>
+                  <th style={colAct}>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {blocked.map((em) => (
                   <tr key={em}>
-                    <td>{em}</td>
-                    <td className="col-action">
+                    <td style={colEmail}>{em}</td>
+                    <td style={colAct}>
                       <button
                         className="btn-danger-small"
                         onClick={async () => {
@@ -416,9 +412,8 @@ export default function Admin() {
                 ))}
                 {blocked.length === 0 && (
                   <tr>
-                    <td colSpan="2" style={{ textAlign: "center" }}>
-                      (None)
-                    </td>
+                    <td style={colEmail}>(None)</td>
+                    <td style={colAct}></td>
                   </tr>
                 )}
               </tbody>
@@ -436,15 +431,15 @@ export default function Admin() {
             <button
               className="btn btn-danger"
               onClick={async () => {
-                const email = document
+                const v = document
                   .getElementById("newBL")
                   .value.trim()
                   .toLowerCase();
-                if (!email) return;
+                if (!v) return;
                 await fetch("/api/block-user", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ email }),
+                  body: JSON.stringify({ email: v }),
                 });
                 document.getElementById("newBL").value = "";
                 fetchBL();
