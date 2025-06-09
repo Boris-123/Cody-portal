@@ -209,3 +209,32 @@
   border-radius: 4px;
   margin-right: 0.75rem;
 }
+
+/* Pagination */
+.pagination{
+  display:flex;align-items:center;gap:0.5rem;margin-top:0.75rem;font-size:0.9rem
+}
+.pagination button{
+  background:#edf2f7;border:1px solid #cbd5e0;border-radius:4px;
+  padding:0.25rem 0.6rem;cursor:pointer
+}
+.pagination button[disabled]{opacity:.4;cursor:not-allowed}
+.pagination select{
+  border:1px solid #cbd5e0;border-radius:4px;padding:0.25rem 0.4rem
+}
+
+/* Block / Unblock 按钮 */
+.btn-remove-user,.btn-unblock{
+  background:#e53e3e;color:#fff;border:none;border-radius:4px;
+  padding:0.35rem 0.8rem;font-size:0.85rem;cursor:pointer;transition:.2s
+}
+.btn-remove-user:hover,.btn-unblock:hover{background:#c53030}
+
+/* Add (Whitelist) */
+.btn-add{
+  background:#34d399;color:#fff;border:none;border-radius:4px;
+  padding:0.45rem 0.9rem;font-size:0.85rem;cursor:pointer;transition:.2s
+}
+.btn-add:hover{background:#059669}
+
+/* Edit / Save 按钮复用现有 .btn-save 样式 */
