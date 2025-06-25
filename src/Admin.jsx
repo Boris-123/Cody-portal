@@ -220,61 +220,79 @@ export default function Admin() {
                     </PrettyBtn>
                   </td>
                 </tr>
-                {expanded === u.email &&
-                  u.all.map((rec, i) => (
-                    <tr className="expand-row" key={rec._id ?? i}>
-                      <td></td>
-                      <td>{rec.email}</td>
-                      <td>{new Date(rec.timestamp).toLocaleString()}</td>
-                      <td>{rec.location ?? "–"}</td>
-                      <td>
-                        <PrettyBtn
-                          variant="danger"
-                          onClick={async () => {
-                            await fetch("/api/block-user", {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ email: rec.email }),
-                            });
-                            loadBlocked();
-                          }}
-                        >
-                          Block
-                        </PrettyBtn>
-                      </td>
-                    </tr>
-                  ))}
+              {expanded === u.email &&
+         u.all.map((rec, i) => (
+        <tr className="expand-row" key={rec._id ?? i}>
+          <td></td>
+          <td>{rec.email}</td>
+          <td>{new Date(rec.timestamp).toLocaleString()}</td>
+          <td>{rec.location ?? "–"}</td>
+          <td></td> {/* no per-row action now */}
+        </tr>
+      ))}
               </React.Fragment>
             ))}
           </SimpleTable>
         </section>
 
-        {/* 2 – blocked users */}
-        <section className="section-block">
-          <h2 className="section-title">2. Blocked Users</h2>
-          <SimpleTable head={["Email", "Action"]}>
-            {blockedUsers.map((em) => (
-              <tr key={em}>
-                <td>{em}</td>
-                <td>
-                  <PrettyBtn
-                    variant="danger"
-                    onClick={async () => {
-                      await fetch("/api/unblock-user", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ email: em }),
-                      });
-                      loadBlocked();
-                    }}
-                  >
-                    Unblock
-                  </PrettyBtn>
-                </td>
-              </tr>
-            ))}
-          </SimpleTable>
-        </section>
+{/* 2 – blocked users */}
+<section className="section-block">
+  <h2 className="section-title">2. Blocked Users</h2>
+
+  {/* table of currently-blocked emails */}
+  <SimpleTable head={["Email", "Action"]}>
+    {blockedUsers.map((em) => (
+      <tr key={em}>
+        <td>{em}</td>
+        <td>
+          <PrettyBtn
+            variant="danger"
+            onClick={async () => {
+              await fetch("/api/unblock-user", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: em }),
+              });
+              loadBlocked();
+            }}
+          >
+            Unblock
+          </PrettyBtn>
+        </td>
+      </tr>
+    ))}
+  </SimpleTable>
+
+  {/* single input to add a new blocked address */}
+  <div className="controls-row" style={{ marginTop: ".6rem" }}>
+    <input
+      id="newBL"
+      className="input"
+      type="email"
+      placeholder="user@example.com"
+    />
+    <PrettyBtn
+      onClick={async () => {
+        const v = document
+          .getElementById("newBL")
+          .value.trim()
+          .toLowerCase();
+
+        if (!v || blockedUsers.includes(v)) return;   // guard
+
+        await fetch("/api/block-user", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: v }),
+        });
+        document.getElementById("newBL").value = "";
+        loadBlocked();
+      }}
+    >
+      Block
+    </PrettyBtn>
+  </div>
+</section>
 
         {/* 3 – max users */}
         <section className="section-block">

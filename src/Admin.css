@@ -217,6 +217,12 @@ tbody tr:hover { background: #f9fafb; }
   tbody tr:hover,
   .expand-row        { background: #273045; }
 }
+/* Align final “Action” column */
+.events-table th:last-child,
+.events-table td:last-child {
+  width: 96px;          /* tweak if you need wider/narrower */
+  text-align: center;
+}
 
 /* =========================================================
    PAGINATION (optional)
