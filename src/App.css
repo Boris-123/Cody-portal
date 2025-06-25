@@ -1,12 +1,9 @@
 /* src/App.css */
 
-/* 1. 登录页面整体背景 */
 :root {
   --login-bg: url("https://static.wixstatic.com/media/5bfb6f_b4c53ed3cc1c426aa8ea180798bc870f.jpeg/v1/fill/w_1904,h_1050,al_c,q_90,enc_avif,quality_auto/5bfb6f_b4c53ed3cc1c426aa8ea180798bc870f.jpeg0");
-  /* ↑ 将上面 URL 替换为你选中图像的真实链接，如 turn0image0 对应的 URL */
 }
 
-/* 全局重置和基础 */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -16,28 +13,22 @@
 html,
 body {
   height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-/* 2. 登录容器：铺满整屏，显示渐变叠加背景 */
 .login-container {
   position: relative;
   height: 100vh;
   width: 100%;
-  background: 
-    /* 浅色半透明叠加，提高可读性 */
-    linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)),
-    var(--login-bg) center/cover no-repeat;
+  background: linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), var(--login-bg) center/cover no-repeat;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* 3. 登录卡片：加大尺寸、柔和阴影 */
 .login-card {
   background-color: rgba(255, 255, 255, 0.95);
-  width: 420px;           /* 放大宽度 */
+  width: 420px;
   max-width: 90%;
   padding: 2.5rem 1.5rem;
   border-radius: 12px;
@@ -46,17 +37,15 @@ body {
   position: relative;
 }
 
-/* 4. Logo：增大至 120px，同时加圆角效果 */
 .login-card img {
-  height: 120px;          /* 从 80px 放大到 120px */
+  height: 120px;
   width: auto;
   margin: 0 auto 1.5rem;
   display: block;
-  border-radius: 50%;     /* 保持圆形 Logo */
+  border-radius: 50%;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-/* 5. 标题文字：更大字体、加粗 */
 .login-card h1 {
   font-size: 2rem;
   font-weight: 600;
@@ -64,7 +53,6 @@ body {
   margin-bottom: 0.5rem;
 }
 
-/* 6. 文本说明：微调行高和颜色 */
 .login-card p {
   font-size: 1rem;
   line-height: 1.6;
@@ -72,7 +60,6 @@ body {
   margin-bottom: 2rem;
 }
 
-/* 7. 登录按钮：高亮蓝色，微圆角 */
 .login-button {
   background-color: #1e40af;
   color: #ffffff;
@@ -96,14 +83,12 @@ body {
   box-shadow: 0 4px 12px rgba(30, 50, 150, 0.2);
 }
 
-/* 8. 底部版权注脚 */
 .login-card .footer-text {
   font-size: 0.85rem;
   color: #9ca3af;
   margin-top: 1.5rem;
 }
 
-/* 9. 登录后顶部 Header 保持与卡片风格一致 */
 header {
   background-color: #1e40af;
   color: #ffffff;
@@ -138,14 +123,40 @@ header button:active {
   background-color: #dc2626;
 }
 
-/* 10. Iframe 容器 */
 main {
   flex: 1;
   padding: 1rem;
   background-color: #f4f6f8;
 }
 
-/* 11. 响应式调整（屏幕窄时卡片稍微变窄） */
+/* NEW: Styling for expanded grouped login display */
+.sub-row {
+  background-color: #f9fafb;
+  font-size: 0.875rem;
+  color: #4b5563;
+  padding: 0.25rem 0.5rem;
+  border-left: 4px solid #93c5fd;
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.sub-row p {
+  margin: 0.15rem 0;
+}
+
+.expand-toggle {
+  font-size: 0.875rem;
+  color: #2563eb;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+}
+
+.expand-toggle:hover {
+  text-decoration: underline;
+}
+
 @media (max-width: 450px) {
   .login-card {
     width: 95%;
