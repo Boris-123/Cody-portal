@@ -1,5 +1,5 @@
 // src/App.jsx
-import React from "react";
+import React , { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth0 } from "@auth0/auth0-react";
 
@@ -18,29 +18,29 @@ export default function App() {
   } = useAuth0();
 
   useEffect(() => {
-    const trackLogin = async () => {
-      if (!isAuthenticated || !user) return;
+  const trackLogin = async () => {
+    if (!isAuthenticated || !user) return;
 
-      const res = await fetch("/api/track-login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: user.email,
-          userId: user.sub,
-          when: new Date().toISOString(),
-        }),
-      });
+    const res = await fetch("/api/track-login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: user.email,
+        userId: user.sub,
+        when: new Date().toISOString(),
+      }),
+    });
 
-      if (res.status === 403) {
-        const msg = await res.json();
-        alert(msg.error || "Access denied. You have been blocked or max users exceeded.");
-        window.location.href = "/api/auth/logout"; // 🔁 Logs out immediately
-      }
-    };
-    trackLogin();
-  }, [isAuthenticated, user]);
-  
-  // 🔼 🔼 🔼 END OF useEffect INSERT
+    if (res.status === 403) {
+      const msg = await res.json();
+      alert(msg.error || "Access denied. You have been blocked or max users exceeded.");
+      window.location.href = "/api/auth/logout";
+    }
+  };
+
+  trackLogin(); // ✅ You must call it
+}, [isAuthenticated, user]);
+
   // 1. 正在加载
   if (isLoading) {
     return (
