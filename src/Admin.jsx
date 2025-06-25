@@ -10,21 +10,13 @@ import "./Admin.css";
 
 /* ═════════ helper components ═════════ */
 
-const PrettyBtn = ({
-  variant = "primary",
-  children,
-  ...rest
-}) => (
+const PrettyBtn = ({ variant = "primary", children, ...rest }) => (
   <button className={`pbtn pbtn-${variant}`} {...rest}>
     {children}
   </button>
 );
 
-const SimpleTable = ({
-  head,
-  children,
-  actionWidth = 96, // px
-}) => (
+const SimpleTable = ({ head, children, actionWidth = 96 }) => (
   <div className="table-wrapper">
     <table className="events-table">
       <colgroup>
@@ -44,46 +36,29 @@ const SimpleTable = ({
   </div>
 );
 
-/* ═════════ helper: make ANY payload → ["email"] ═════════ */
+/* ═════════ helper: normalise any payload → ["email"] ═════════ */
 
 const extractEmails = (raw) => {
-  // wrap non-array forms into one array to iterate
-  const guessLists = [];
+  const pools = [];
 
-  if (Array.isArray(raw)) guessLists.push(raw);
+  if (Array.isArray(raw)) pools.push(raw);
   else if (raw && typeof raw === "object") {
-    // common property names
-    [
-      "blocked",
-      "whitelist",
-      "items",
-      "data",
-      "users",
-      "records",
-    ].forEach((k) => {
-      if (Array.isArray(raw[k])) guessLists.push(raw[k]);
+    ["blocked", "whitelist", "items", "data"].forEach((k) => {
+      if (Array.isArray(raw[k])) pools.push(raw[k]);
     });
   }
 
-  // flatten & pick likely e-mail fields
-  return guessLists
+  return pools
     .flat()
-    .map((item) => {
-      if (!item) return null;
-      if (typeof item === "string") return item;
-      return (
-        item.email ||
-        item.mail ||
-        item.address ||
-        item.user ||
-        item.username ||
-        null
-      );
-    })
+    .map((x) =>
+      typeof x === "string"
+        ? x
+        : x?.email || x?.mail || x?.address || x?.user || x?.username
+    )
     .filter(Boolean);
 };
 
-/* ═════════ main component ═════════ */
+/* ═════════ main ═════════ */
 
 export default function Admin() {
   const { logout } = useAuth0();
@@ -101,28 +76,33 @@ export default function Admin() {
   const [auto, setAuto] = useState(true);
   const [expanded, setExpanded] = useState(null);
 
-  /* ── generic fetch helper ── */
-  const getJSON = async (url, opts = {}) => {
-    try {
-      const r = await fetch(url, opts);
-      return r.ok ? r.json() : null;
-    } catch {
-      return null;
-    }
-  };
+  /* ── helpers ── */
+  const getJSON = (url, opts = {}) =>
+    fetch(url, opts).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+
+  const mergeSet =
+    (setter) =>
+    (list) =>
+      setter((prev) => {
+        const merged = [...new Set([...prev, ...list])];
+        return list.length === 0 ? prev : merged;
+      });
 
   /* ── loaders ── */
-  const loadEvents = useCallback(async (signal) => {
-    setLoadingEv(true);
-    const data = await getJSON("/api/admin-logins", signal ? { signal } : {});
-    setEvents(Array.isArray(data) ? data : []);
-    setLoadingEv(false);
-  }, []);
+  const loadEvents = useCallback(
+    async (signal) => {
+      setLoadingEv(true);
+      const data = await getJSON("/api/admin-logins", signal ? { signal } : {});
+      setEvents(Array.isArray(data) ? data : []);
+      setLoadingEv(false);
+    },
+    []
+  );
 
   const loadBlocked = useCallback(
     async (signal) => {
       const data = await getJSON("/api/blocked-users", signal ? { signal } : {});
-      setBlocked(extractEmails(data));
+      mergeSet(setBlocked)(extractEmails(data));
     },
     []
   );
@@ -130,7 +110,7 @@ export default function Admin() {
   const loadWhitelist = useCallback(
     async (signal) => {
       const data = await getJSON("/api/whitelist", signal ? { signal } : {});
-      setWhitelist(extractEmails(data));
+      mergeSet(setWhitelist)(extractEmails(data));
     },
     []
   );
@@ -140,7 +120,7 @@ export default function Admin() {
     setMaxUsers(data?.max?.toString() ?? "");
   }, []);
 
-  /* ── first load + auto refresh ── */
+  /* ── bootstrap + auto refresh ── */
   useEffect(() => {
     const c = new AbortController();
     loadEvents(c.signal);
@@ -158,7 +138,7 @@ export default function Admin() {
     return () => c.abort();
   }, [auto, loadEvents, loadBlocked, loadWhitelist, loadMax]);
 
-  /* ── derived data ── */
+  /* ── computed ── */
   const grouped = useMemo(() => {
     const m = new Map();
     events.forEach((e) => {
@@ -168,10 +148,10 @@ export default function Admin() {
     return [...m.entries()].map(([email, all]) => ({
       email,
       username: email.split("@")[0],
+      all,
       last: all.reduce((p, c) =>
         new Date(c.timestamp) > new Date(p.timestamp) ? c : p
       ),
-      all,
     }));
   }, [events]);
 
@@ -188,38 +168,12 @@ export default function Admin() {
 
   const uniqueCnt = new Set(events.map((e) => e.email.toLowerCase())).size;
 
-  /* ── handlers ── */
-  const exportCsv = () => {
-    const lines = [
-      ["Username", "Email", "Timestamp", "IP"].join(","),
-      ...events.map((e) =>
-        [
-          e.email.split("@")[0],
-          e.email,
-          new Date(e.timestamp).toISOString(),
-          e.location ?? "",
-        ].join(",")
-      ),
-    ];
-    const blob = new Blob([lines.join("\n")], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = Object.assign(document.createElement("a"), {
-      href: url,
-      download: `login-events-${Date.now()}.csv`,
-    });
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  /* ═════════ UI ═════════ */
+  /* ═════════ render ═════════ */
   return (
     <div className="admin-container">
-      {/* ── header ── */}
+      {/* header */}
       <header className="admin-header">
-        <div
-          className="header-left"
-          onClick={() => (window.location.href = "/")}
-        >
+        <div className="header-left" onClick={() => (window.location.href = "/")}>
           <img src={CompanyLogo} alt="" className="header-logo" />
           <h1 className="header-title">Polaris Admin Dashboard</h1>
         </div>
@@ -229,7 +183,7 @@ export default function Admin() {
       </header>
 
       <main className="admin-main">
-        {/* 1. login events */}
+        {/* 1 ─ Current logins */}
         <section className="section-block">
           <h2 className="section-title">1. Current Login Events</h2>
           <p className="muted">
@@ -258,7 +212,27 @@ export default function Admin() {
             <PrettyBtn onClick={() => loadEvents()} disabled={loadingEv}>
               {loadingEv ? "Loading…" : "Refresh"}
             </PrettyBtn>
-            <PrettyBtn variant="secondary" onClick={exportCsv}>
+            <PrettyBtn variant="secondary" onClick={() => {
+              const rows = [
+                ["Username", "Email", "Timestamp", "IP"].join(","),
+                ...events.map((e) =>
+                  [
+                    e.email.split("@")[0],
+                    e.email,
+                    new Date(e.timestamp).toISOString(),
+                    e.location ?? "",
+                  ].join(",")
+                ),
+              ];
+              const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+              const url = URL.createObjectURL(blob);
+              const a = Object.assign(document.createElement("a"), {
+                href: url,
+                download: `login-events-${Date.now()}.csv`,
+              });
+              a.click();
+              URL.revokeObjectURL(url);
+            }}>
               Export&nbsp;CSV
             </PrettyBtn>
             <label className="autoref-label">
@@ -271,9 +245,7 @@ export default function Admin() {
             </label>
           </div>
 
-          <SimpleTable
-            head={["Username", "Email", "Last Login", "Last IP", "Action"]}
-          >
+          <SimpleTable head={["Username", "Email", "Last Login", "Last IP", "Action"]}>
             {filtered.map((u) => (
               <React.Fragment key={u.email}>
                 <tr>
@@ -307,7 +279,7 @@ export default function Admin() {
           </SimpleTable>
         </section>
 
-        {/* 2. blocked users */}
+        {/* 2 ─ Blocked users */}
         <section className="section-block">
           <h2 className="section-title">2. Blocked Users</h2>
 
@@ -324,8 +296,8 @@ export default function Admin() {
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ email: em }),
                       });
-                      setBlocked((p) => p.filter((e) => e !== em));
-                      loadBlocked(); // re-sync
+                      mergeSet(setBlocked)([]); // keep others
+                      await loadBlocked();       // full sync
                     }}
                   >
                     Unblock
@@ -348,9 +320,11 @@ export default function Admin() {
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ email: v }),
                 });
+
+                /* wait a tick so the DB upsert is definitely visible */
+                await new Promise((r) => setTimeout(r, 300));
                 inp.value = "";
-                setBlocked((p) => [...p, v]);
-                loadBlocked();
+                await loadBlocked();
               }}
             >
               Block
@@ -358,7 +332,7 @@ export default function Admin() {
           </div>
         </section>
 
-        {/* 3. max-users limit */}
+        {/* 3 ─ Max users */}
         <section className="section-block">
           <h2 className="section-title">3. Max-Users Limit</h2>
           <div className="controls-row">
@@ -384,7 +358,7 @@ export default function Admin() {
           </div>
         </section>
 
-        {/* 4. whitelist */}
+        {/* 4 ─ Whitelist */}
         <section className="section-block">
           <h2 className="section-title">4. Whitelist</h2>
 
@@ -403,8 +377,8 @@ export default function Admin() {
                           whitelist: whitelist.filter((e) => e !== em),
                         }),
                       });
-                      setWhitelist((p) => p.filter((e) => e !== em));
-                      loadWhitelist();
+                      mergeSet(setWhitelist)([]);
+                      await loadWhitelist();
                     }}
                   >
                     Remove
@@ -415,12 +389,7 @@ export default function Admin() {
           </SimpleTable>
 
           <div className="controls-row" style={{ marginTop: ".6rem" }}>
-            <input
-              id="newWL"
-              className="input"
-              type="email"
-              placeholder="admin@example.com"
-            />
+            <input id="newWL" className="input" type="email" placeholder="admin@example.com" />
             <PrettyBtn
               onClick={async () => {
                 const inp = document.getElementById("newWL");
@@ -432,9 +401,10 @@ export default function Admin() {
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ whitelist: [...whitelist, v] }),
                 });
+
+                await new Promise((r) => setTimeout(r, 300));
                 inp.value = "";
-                setWhitelist((p) => [...p, v]);
-                loadWhitelist();
+                await loadWhitelist();
               }}
             >
               Add
