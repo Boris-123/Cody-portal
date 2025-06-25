@@ -50,11 +50,12 @@ export default function App() {
           <button
             className="login-button"
             onClick={() => {
-              window.location.href = "/api/auth/logout";
-            }}
+            logout({ logoutParams: { returnTo: window.location.origin } });
+          }}
           >
             Log Out and Switch Account
-          </button>
+      </button>
+
         </div>
       </div>
     );
