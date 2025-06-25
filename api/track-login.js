@@ -30,7 +30,7 @@ export default async function handler(req, res) {
     const setting = await db
       .collection("settings")
       .findOne({ _id: "maxUsers" });
-    const maxUsers = setting ? setting.value : 10;
+    const maxUsers = setting ? setting.value : 25;
 
     if (!uniqueEmails.includes(em) && uniqueCount >= maxUsers) {
       return res
