@@ -1,5 +1,5 @@
 // src/App.jsx
-import React , { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth0 } from "@auth0/auth0-react";
 
@@ -16,6 +16,8 @@ export default function App() {
     logout,
     error,
   } = useAuth0();
+  const [isBlocked, setIsBlocked] = useState(false);
+
 
   useEffect(() => {
   const trackLogin = async () => {
@@ -32,14 +34,31 @@ export default function App() {
     });
 
     if (res.status === 403) {
-      const msg = await res.json();
-      alert(msg.error || "Access denied. You have been blocked or max users exceeded.");
-      window.location.href = "/api/auth/logout";
+      setIsBlocked(true);
     }
   };
 
   trackLogin(); // ✅ You must call it
 }, [isAuthenticated, user]);
+//blocked page
+  if (isBlocked) {
+    return (
+      <div className="login-container">
+        <div className="login-card">
+          <h2 style={{ color: "red" }}>Access Denied</h2>
+          <p>Your email has been blocked or the user limit has been exceeded.</p>
+          <button
+            className="login-button"
+            onClick={() => {
+              window.location.href = "/api/auth/logout";
+            }}
+          >
+            Log Out and Switch Account
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // 1. 正在加载
   if (isLoading) {
