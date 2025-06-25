@@ -110,7 +110,7 @@ export default function Admin() {
   const loadWhitelist = useCallback(
     async (signal) => {
       const data = await getJSON("/api/whitelist", signal ? { signal } : {});
-      mergeSet(setWhitelist)(extractEmails(data));
+      setWhitelist(extractEmails(data));
     },
     []
   );
@@ -380,7 +380,10 @@ export default function Admin() {
                           whitelist: whitelist.filter((e) => e !== em),
                         }),
                       });
-                      mergeSet(setWhitelist)([]);
+                      // 1️⃣ remove locally
+                      setWhitelist((prev) => prev.filter((e) => e !== em));
+                      // 2️⃣ wait a tick for the DB write, then refresh from server
+                      await new Promise((r) => setTimeout(r, 300));
                       await loadWhitelist();
                     }}
                   >
