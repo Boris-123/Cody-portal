@@ -13,17 +13,26 @@ export default async function handler(req, res) {
     (req.headers["x-forwarded-for"] || "").split(",")[0].trim() ||
     req.socket.remoteAddress;
   const ts = when ? new Date(when) : new Date();
+  const em = email.toLowerCase();
 
   try {
     const { db } = await connectToDatabase();
-    const em = email.toLowerCase();
 
-    /* --------- 黑名单 ---------- */
+    /* ───── 1. BLOCK LIST ───── */
     if (await db.collection("blocked_emails").findOne({ _id: em })) {
       return res.status(403).json({ error: "This account is blocked." });
     }
 
-    /* --------- 计算人数 ---------- */
+    /* ───── 2. WHITELIST (NEW) ───── */
+    const wlDoc = await db.collection("settings").findOne({ _id: "whitelist" });
+    const whitelist = (wlDoc?.value || []).map((e) => e.toLowerCase());
+
+    // If list exists and is non-empty, enforce it
+    if (whitelist.length && !whitelist.includes(em)) {
+      return res.status(403).json({ error: "Not on whitelist." });
+    }
+
+    /* ───── 3. MAX-USERS CAP ───── */
     const uniqueEmails = await db.collection("login_events").distinct("email");
     const uniqueCount = uniqueEmails.length;
 
@@ -38,7 +47,7 @@ export default async function handler(req, res) {
         .json({ error: `User limit reached (${maxUsers}).` });
     }
 
-    /* --------- 写入记录 ---------- */
+    /* ───── 4. WRITE LOGIN EVENT ───── */
     await db.collection("login_events").insertOne({
       userId,
       email: em,
