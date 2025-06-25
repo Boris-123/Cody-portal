@@ -1,4 +1,4 @@
-// api/block-user.js
+// api/unblock-user.js
 import { connectToDatabase } from "../src/utils/mongoDB.js";
 
 export default async function handler(req, res) {
@@ -11,18 +11,10 @@ export default async function handler(req, res) {
 
   try {
     const { db } = await connectToDatabase();
-    // upsert the blacklist record
-    await db.collection("blocked_emails").updateOne(
-      { _id: em },
-      { $set: { blockedAt: new Date() } },
-      { upsert: true }
-    );
-    // immediately free up the seat
-    await db.collection("login_events").deleteMany({ email: em });
-
+    await db.collection("blocked_emails").deleteOne({ _id: em });
     return res.status(200).json({ success: true });
   } catch (err) {
-    console.error("block-user error:", err);
+    console.error("unblock-user error:", err);
     return res.status(500).json({ error: "Internal Server Error" });
   }
 }

@@ -8,7 +8,8 @@ import { useAuth0 } from "@auth0/auth0-react";
 import CompanyLogo from "./assets/logolatest.jpg";
 import "./Admin.css";
 
-/* ---------- helper components ---------- */
+/* ═════════ helper components ═════════ */
+
 const PrettyBtn = ({
   variant = "primary",
   children,
@@ -19,11 +20,10 @@ const PrettyBtn = ({
   </button>
 );
 
-/** Generic table wrapper – adds fixed-width “Action” col. */
 const SimpleTable = ({
   head,
   children,
-  actionWidth = 96,
+  actionWidth = 96, // px
 }) => (
   <div className="table-wrapper">
     <table className="events-table">
@@ -43,24 +43,54 @@ const SimpleTable = ({
     </table>
   </div>
 );
-/* --------------------------------------- */
 
-/* normalise any back-end list into ["a@b", …] */
+/* ═════════ helper: make ANY payload → ["email"] ═════════ */
+
 const extractEmails = (raw) => {
-  const list = Array.isArray(raw)
-    ? raw
-    : raw?.blocked ?? raw?.whitelist ?? [];
-  return list
-    .map((e) => (typeof e === "string" ? e : e?.email))
+  // wrap non-array forms into one array to iterate
+  const guessLists = [];
+
+  if (Array.isArray(raw)) guessLists.push(raw);
+  else if (raw && typeof raw === "object") {
+    // common property names
+    [
+      "blocked",
+      "whitelist",
+      "items",
+      "data",
+      "users",
+      "records",
+    ].forEach((k) => {
+      if (Array.isArray(raw[k])) guessLists.push(raw[k]);
+    });
+  }
+
+  // flatten & pick likely e-mail fields
+  return guessLists
+    .flat()
+    .map((item) => {
+      if (!item) return null;
+      if (typeof item === "string") return item;
+      return (
+        item.email ||
+        item.mail ||
+        item.address ||
+        item.user ||
+        item.username ||
+        null
+      );
+    })
     .filter(Boolean);
 };
+
+/* ═════════ main component ═════════ */
 
 export default function Admin() {
   const { logout } = useAuth0();
 
-  /* ───────── state ───────── */
+  /* ── state ── */
   const [events, setEvents] = useState([]);
-  const [blockedUsers, setBlockedUsers] = useState([]);
+  const [blocked, setBlocked] = useState([]);
   const [whitelist, setWhitelist] = useState([]);
   const [maxUsers, setMaxUsers] = useState("");
 
@@ -68,11 +98,11 @@ export default function Admin() {
   const [search, setSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [auto, setAuto] = useState(true);
   const [expanded, setExpanded] = useState(null);
 
-  /* ───────── fetch helpers ───────── */
-  const fetchJson = async (url, opts = {}) => {
+  /* ── generic fetch helper ── */
+  const getJSON = async (url, opts = {}) => {
     try {
       const r = await fetch(url, opts);
       return r.ok ? r.json() : null;
@@ -81,117 +111,86 @@ export default function Admin() {
     }
   };
 
-  const loadEvents = useCallback(
-    async (signal) => {
-      setLoadingEv(true);
-      const data = await fetchJson("/api/admin-logins", {
-        signal,
-      });
-      setEvents(Array.isArray(data) ? data : []);
-      setLoadingEv(false);
-    },
-    []
-  );
+  /* ── loaders ── */
+  const loadEvents = useCallback(async (signal) => {
+    setLoadingEv(true);
+    const data = await getJSON("/api/admin-logins", signal ? { signal } : {});
+    setEvents(Array.isArray(data) ? data : []);
+    setLoadingEv(false);
+  }, []);
 
   const loadBlocked = useCallback(
     async (signal) => {
-      const data = await fetchJson("/api/blocked-users", {
-        signal,
-      });
-      setBlockedUsers(extractEmails(data));
+      const data = await getJSON("/api/blocked-users", signal ? { signal } : {});
+      setBlocked(extractEmails(data));
     },
     []
   );
 
   const loadWhitelist = useCallback(
     async (signal) => {
-      const data = await fetchJson("/api/whitelist", {
-        signal,
-      });
+      const data = await getJSON("/api/whitelist", signal ? { signal } : {});
       setWhitelist(extractEmails(data));
     },
     []
   );
 
-  const loadMax = useCallback(
-    async (signal) => {
-      const data = await fetchJson("/api/max-users", {
-        signal,
-      });
-      setMaxUsers(data?.max?.toString() ?? "");
-    },
-    []
-  );
+  const loadMax = useCallback(async (signal) => {
+    const data = await getJSON("/api/max-users", signal ? { signal } : {});
+    setMaxUsers(data?.max?.toString() ?? "");
+  }, []);
 
-  /* ───────── lifecycle ───────── */
+  /* ── first load + auto refresh ── */
   useEffect(() => {
-    const ctrl = new AbortController();
-    loadEvents(ctrl.signal);
-    loadBlocked(ctrl.signal);
-    loadWhitelist(ctrl.signal);
-    loadMax(ctrl.signal);
+    const c = new AbortController();
+    loadEvents(c.signal);
+    loadBlocked(c.signal);
+    loadWhitelist(c.signal);
+    loadMax(c.signal);
 
-    if (autoRefresh) {
-      const id = setInterval(
-        () => loadEvents(ctrl.signal),
-        30_000
-      );
+    if (auto) {
+      const id = setInterval(() => loadEvents(c.signal), 30_000);
       return () => {
-        ctrl.abort();
+        c.abort();
         clearInterval(id);
       };
     }
-    return () => ctrl.abort();
-  }, [
-    autoRefresh,
-    loadEvents,
-    loadBlocked,
-    loadWhitelist,
-    loadMax,
-  ]);
+    return () => c.abort();
+  }, [auto, loadEvents, loadBlocked, loadWhitelist, loadMax]);
 
-  /* ───────── derived data ───────── */
+  /* ── derived data ── */
   const grouped = useMemo(() => {
-    const map = new Map();
+    const m = new Map();
     events.forEach((e) => {
       const key = e.email.toLowerCase();
-      if (!map.has(key)) map.set(key, []);
-      map.get(key).push(e);
+      m.set(key, [...(m.get(key) || []), e]);
     });
-    return [...map.entries()].map(([email, all]) => ({
+    return [...m.entries()].map(([email, all]) => ({
       email,
       username: email.split("@")[0],
+      last: all.reduce((p, c) =>
+        new Date(c.timestamp) > new Date(p.timestamp) ? c : p
+      ),
       all,
-      last: all.sort(
-        (a, b) =>
-          new Date(b.timestamp) - new Date(a.timestamp)
-      )[0],
     }));
   }, [events]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return grouped.filter(({ username, last }) => {
-      if (q && !username.toLowerCase().includes(q))
-        return false;
+      if (q && !username.toLowerCase().includes(q)) return false;
       const ts = new Date(last.timestamp);
       if (dateFrom && ts < new Date(dateFrom)) return false;
-      if (dateTo && ts > new Date(`${dateTo}T23:59:59`))
-        return false;
+      if (dateTo && ts > new Date(`${dateTo}T23:59:59`)) return false;
       return true;
     });
   }, [grouped, search, dateFrom, dateTo]);
 
-  const uniqueCnt = new Set(
-    events.map((e) => e.email.toLowerCase())
-  ).size;
+  const uniqueCnt = new Set(events.map((e) => e.email.toLowerCase())).size;
 
-  /* ───────── handlers ───────── */
-  const toggleExpand = (email) =>
-    setExpanded((p) => (p === email ? null : email));
-
+  /* ── handlers ── */
   const exportCsv = () => {
-    const rows = [
+    const lines = [
       ["Username", "Email", "Timestamp", "IP"].join(","),
       ...events.map((e) =>
         [
@@ -202,9 +201,7 @@ export default function Admin() {
         ].join(",")
       ),
     ];
-    const blob = new Blob([rows.join("\n")], {
-      type: "text/csv",
-    });
+    const blob = new Blob([lines.join("\n")], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = Object.assign(document.createElement("a"), {
       href: url,
@@ -214,44 +211,31 @@ export default function Admin() {
     URL.revokeObjectURL(url);
   };
 
-  /* ───────── UI ───────── */
+  /* ═════════ UI ═════════ */
   return (
     <div className="admin-container">
-      {/* header */}
+      {/* ── header ── */}
       <header className="admin-header">
         <div
           className="header-left"
           onClick={() => (window.location.href = "/")}
         >
-          <img
-            src={CompanyLogo}
-            alt="logo"
-            className="header-logo"
-          />
-          <h1 className="header-title">
-            Polaris Admin Dashboard
-          </h1>
+          <img src={CompanyLogo} alt="" className="header-logo" />
+          <h1 className="header-title">Polaris Admin Dashboard</h1>
         </div>
-        <PrettyBtn
-          variant="danger"
-          onClick={() => logout()}
-        >
+        <PrettyBtn variant="danger" onClick={() => logout()}>
           Log&nbsp;Out
         </PrettyBtn>
       </header>
 
       <main className="admin-main">
-        {/* 1 – login events */}
+        {/* 1. login events */}
         <section className="section-block">
-          <h2 className="section-title">
-            1. Current Login Events
-          </h2>
+          <h2 className="section-title">1. Current Login Events</h2>
           <p className="muted">
-            Unique Users Logged&nbsp;In:{" "}
-            <strong>{uniqueCnt}</strong>
+            Unique Users Logged&nbsp;In: <strong>{uniqueCnt}</strong>
           </p>
 
-          {/* filters */}
           <div className="controls-row">
             <input
               className="input"
@@ -263,9 +247,7 @@ export default function Admin() {
               type="date"
               className="input input-date"
               value={dateFrom}
-              onChange={(e) =>
-                setDateFrom(e.target.value)
-              }
+              onChange={(e) => setDateFrom(e.target.value)}
             />
             <input
               type="date"
@@ -273,75 +255,49 @@ export default function Admin() {
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
             />
-            <PrettyBtn
-              onClick={() => loadEvents()}
-              disabled={loadingEv}
-            >
+            <PrettyBtn onClick={() => loadEvents()} disabled={loadingEv}>
               {loadingEv ? "Loading…" : "Refresh"}
             </PrettyBtn>
-            <PrettyBtn
-              variant="secondary"
-              onClick={exportCsv}
-            >
+            <PrettyBtn variant="secondary" onClick={exportCsv}>
               Export&nbsp;CSV
             </PrettyBtn>
             <label className="autoref-label">
               <input
                 type="checkbox"
-                checked={autoRefresh}
-                onChange={(e) =>
-                  setAutoRefresh(e.target.checked)
-                }
+                checked={auto}
+                onChange={(e) => setAuto(e.target.checked)}
               />
               auto&nbsp;30&nbsp;s
             </label>
           </div>
 
-          {/* login table */}
           <SimpleTable
-            head={[
-              "Username",
-              "Email",
-              "Last Login",
-              "Last IP",
-              "Action",
-            ]}
+            head={["Username", "Email", "Last Login", "Last IP", "Action"]}
           >
             {filtered.map((u) => (
               <React.Fragment key={u.email}>
                 <tr>
                   <td>{u.username}</td>
                   <td>{u.email}</td>
-                  <td>
-                    {new Date(
-                      u.last.timestamp
-                    ).toLocaleString()}
-                  </td>
+                  <td>{new Date(u.last.timestamp).toLocaleString()}</td>
                   <td>{u.last.location ?? "–"}</td>
                   <td>
                     <PrettyBtn
                       variant="secondary"
-                      onClick={() => toggleExpand(u.email)}
+                      onClick={() =>
+                        setExpanded((p) => (p === u.email ? null : u.email))
+                      }
                     >
-                      {expanded === u.email
-                        ? "Hide"
-                        : "Show"}
+                      {expanded === u.email ? "Hide" : "Show"}
                     </PrettyBtn>
                   </td>
                 </tr>
                 {expanded === u.email &&
                   u.all.map((rec, i) => (
-                    <tr
-                      className="expand-row"
-                      key={rec._id ?? i}
-                    >
+                    <tr className="expand-row" key={rec._id ?? i}>
                       <td></td>
                       <td>{rec.email}</td>
-                      <td>
-                        {new Date(
-                          rec.timestamp
-                        ).toLocaleString()}
-                      </td>
+                      <td>{new Date(rec.timestamp).toLocaleString()}</td>
                       <td>{rec.location ?? "–"}</td>
                       <td></td>
                     </tr>
@@ -351,37 +307,25 @@ export default function Admin() {
           </SimpleTable>
         </section>
 
-        {/* 2 – blocked users */}
+        {/* 2. blocked users */}
         <section className="section-block">
-          <h2 className="section-title">
-            2. Blocked Users
-          </h2>
+          <h2 className="section-title">2. Blocked Users</h2>
 
           <SimpleTable head={["Email", "Action"]}>
-            {blockedUsers.map((em) => (
+            {blocked.map((em) => (
               <tr key={em}>
                 <td>{em}</td>
                 <td>
                   <PrettyBtn
                     variant="danger"
                     onClick={async () => {
-                      await fetch(
-                        "/api/unblock-user",
-                        {
-                          method: "POST",
-                          headers: {
-                            "Content-Type":
-                              "application/json",
-                          },
-                          body: JSON.stringify({
-                            email: em,
-                          }),
-                        }
-                      );
-                      setBlockedUsers((p) =>
-                        p.filter((e) => e !== em)
-                      );
-                      loadBlocked();
+                      await fetch("/api/unblock-user", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ email: em }),
+                      });
+                      setBlocked((p) => p.filter((e) => e !== em));
+                      loadBlocked(); // re-sync
                     }}
                   >
                     Unblock
@@ -391,37 +335,21 @@ export default function Admin() {
             ))}
           </SimpleTable>
 
-          <div
-            className="controls-row"
-            style={{ marginTop: ".6rem" }}
-          >
-            <input
-              id="newBL"
-              className="input"
-              type="email"
-              placeholder="user@example.com"
-            />
+          <div className="controls-row" style={{ marginTop: ".6rem" }}>
+            <input id="newBL" className="input" type="email" placeholder="user@example.com" />
             <PrettyBtn
               onClick={async () => {
-                const input =
-                  document.getElementById("newBL");
-                const v = input.value
-                  .trim()
-                  .toLowerCase();
-                if (!v || blockedUsers.includes(v))
-                  return;
+                const inp = document.getElementById("newBL");
+                const v = inp.value.trim().toLowerCase();
+                if (!v || blocked.includes(v)) return;
 
                 await fetch("/api/block-user", {
                   method: "POST",
-                  headers: {
-                    "Content-Type":
-                      "application/json",
-                  },
+                  headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ email: v }),
                 });
-
-                input.value = "";
-                setBlockedUsers((p) => [...p, v]);
+                inp.value = "";
+                setBlocked((p) => [...p, v]);
                 loadBlocked();
               }}
             >
@@ -430,33 +358,23 @@ export default function Admin() {
           </div>
         </section>
 
-        {/* 3 – max users */}
+        {/* 3. max-users limit */}
         <section className="section-block">
-          <h2 className="section-title">
-            3. Max-Users Limit
-          </h2>
-
+          <h2 className="section-title">3. Max-Users Limit</h2>
           <div className="controls-row">
             <input
               type="number"
               className="input"
               style={{ width: 120 }}
               value={maxUsers}
-              onChange={(e) =>
-                setMaxUsers(e.target.value)
-              }
+              onChange={(e) => setMaxUsers(e.target.value)}
             />
             <PrettyBtn
               onClick={async () => {
                 await fetch("/api/max-users", {
                   method: "PUT",
-                  headers: {
-                    "Content-Type":
-                      "application/json",
-                  },
-                  body: JSON.stringify({
-                    max: Number(maxUsers),
-                  }),
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ max: Number(maxUsers) }),
                 });
                 loadMax();
               }}
@@ -466,11 +384,9 @@ export default function Admin() {
           </div>
         </section>
 
-        {/* 4 – whitelist */}
+        {/* 4. whitelist */}
         <section className="section-block">
-          <h2 className="section-title">
-            4. Whitelist
-          </h2>
+          <h2 className="section-title">4. Whitelist</h2>
 
           <SimpleTable head={["Email", "Action"]}>
             {whitelist.map((em) => (
@@ -482,19 +398,12 @@ export default function Admin() {
                     onClick={async () => {
                       await fetch("/api/whitelist", {
                         method: "PUT",
-                        headers: {
-                          "Content-Type":
-                            "application/json",
-                        },
+                        headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
-                          whitelist: whitelist.filter(
-                            (e) => e !== em
-                          ),
+                          whitelist: whitelist.filter((e) => e !== em),
                         }),
                       });
-                      setWhitelist((p) =>
-                        p.filter((e) => e !== em)
-                      );
+                      setWhitelist((p) => p.filter((e) => e !== em));
                       loadWhitelist();
                     }}
                   >
@@ -505,10 +414,7 @@ export default function Admin() {
             ))}
           </SimpleTable>
 
-          <div
-            className="controls-row"
-            style={{ marginTop: ".6rem" }}
-          >
+          <div className="controls-row" style={{ marginTop: ".6rem" }}>
             <input
               id="newWL"
               className="input"
@@ -517,26 +423,16 @@ export default function Admin() {
             />
             <PrettyBtn
               onClick={async () => {
-                const input =
-                  document.getElementById("newWL");
-                const v = input.value
-                  .trim()
-                  .toLowerCase();
-                if (!v || whitelist.includes(v))
-                  return;
+                const inp = document.getElementById("newWL");
+                const v = inp.value.trim().toLowerCase();
+                if (!v || whitelist.includes(v)) return;
 
                 await fetch("/api/whitelist", {
                   method: "PUT",
-                  headers: {
-                    "Content-Type":
-                      "application/json",
-                  },
-                  body: JSON.stringify({
-                    whitelist: [...whitelist, v],
-                  }),
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ whitelist: [...whitelist, v] }),
                 });
-
-                input.value = "";
+                inp.value = "";
                 setWhitelist((p) => [...p, v]);
                 loadWhitelist();
               }}
