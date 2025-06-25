@@ -23,16 +23,7 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: "This account is blocked." });
     }
 
-    /* ───── 2. WHITELIST (NEW) ───── */
-    const wlDoc = await db.collection("settings").findOne({ _id: "whitelist" });
-    const whitelist = (wlDoc?.value || []).map((e) => e.toLowerCase());
-
-    // If list exists and is non-empty, enforce it
-    if (whitelist.length && !whitelist.includes(em)) {
-      return res.status(403).json({ error: "Not on whitelist." });
-    }
-
-    /* ───── 3. MAX-USERS CAP ───── */
+    /* ───── 2. MAX-USERS CAP ───── */
     const uniqueEmails = await db.collection("login_events").distinct("email");
     const uniqueCount = uniqueEmails.length;
 
@@ -47,7 +38,7 @@ export default async function handler(req, res) {
         .json({ error: `User limit reached (${maxUsers}).` });
     }
 
-    /* ───── 4. WRITE LOGIN EVENT ───── */
+    /* ───── 3. WRITE LOGIN EVENT ───── */
     await db.collection("login_events").insertOne({
       userId,
       email: em,
