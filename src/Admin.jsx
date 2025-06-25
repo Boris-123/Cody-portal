@@ -296,8 +296,11 @@ export default function Admin() {
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ email: em }),
                       });
-                      mergeSet(setBlocked)([]); // keep others
-                      await loadBlocked();       // full sync
+                      // remove locally
+                      setBlocked((prev) => prev.filter((e) => e !== em));
+                      // wait a tick so the DB delete finishes, then re-sync
+                      await new Promise((r) => setTimeout(r, 300));
+                      await loadBlocked();
                     }}
                   >
                     Unblock
