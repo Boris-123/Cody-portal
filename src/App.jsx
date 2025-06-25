@@ -17,6 +17,30 @@ export default function App() {
     error,
   } = useAuth0();
 
+  useEffect(() => {
+    const trackLogin = async () => {
+      if (!isAuthenticated || !user) return;
+
+      const res = await fetch("/api/track-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: user.email,
+          userId: user.sub,
+          when: new Date().toISOString(),
+        }),
+      });
+
+      if (res.status === 403) {
+        const msg = await res.json();
+        alert(msg.error || "Access denied. You have been blocked or max users exceeded.");
+        window.location.href = "/api/auth/logout"; // 🔁 Logs out immediately
+      }
+    };
+    trackLogin();
+  }, [isAuthenticated, user]);
+  
+  // 🔼 🔼 🔼 END OF useEffect INSERT
   // 1. 正在加载
   if (isLoading) {
     return (
