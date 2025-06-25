@@ -8,7 +8,7 @@ import { useAuth0 } from "@auth0/auth0-react";
 import CompanyLogo from "./assets/logolatest.jpg";
 import "./Admin.css";
 
-/* ---------- tiny helpers ---------- */
+/* ---------- helper components ---------- */
 const PrettyBtn = ({
   variant = "primary",
   children,
@@ -19,9 +19,23 @@ const PrettyBtn = ({
   </button>
 );
 
-const SimpleTable = ({ head, children }) => (
+/** Generic table wrapper – adds fixed-width “Action” col. */
+const SimpleTable = ({
+  head,
+  children,
+  actionWidth = 96,
+}) => (
   <div className="table-wrapper">
     <table className="events-table">
+      <colgroup>
+        {head.map((_, i) =>
+          i === head.length - 1 ? (
+            <col key={i} style={{ width: actionWidth }} />
+          ) : (
+            <col key={i} />
+          )
+        )}
+      </colgroup>
       <thead>
         <tr>{head.map((h) => <th key={h}>{h}</th>)}</tr>
       </thead>
@@ -29,12 +43,22 @@ const SimpleTable = ({ head, children }) => (
     </table>
   </div>
 );
-/* ----------------------------------- */
+/* --------------------------------------- */
+
+/* normalise any back-end list into ["a@b", …] */
+const extractEmails = (raw) => {
+  const list = Array.isArray(raw)
+    ? raw
+    : raw?.blocked ?? raw?.whitelist ?? [];
+  return list
+    .map((e) => (typeof e === "string" ? e : e?.email))
+    .filter(Boolean);
+};
 
 export default function Admin() {
   const { logout } = useAuth0();
 
-  /* ─────────── state ─────────── */
+  /* ───────── state ───────── */
   const [events, setEvents] = useState([]);
   const [blockedUsers, setBlockedUsers] = useState([]);
   const [whitelist, setWhitelist] = useState([]);
@@ -47,10 +71,10 @@ export default function Admin() {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [expanded, setExpanded] = useState(null);
 
-  /* ─────────── fetch helpers ─────────── */
-  const fetchJson = async (url, { signal } = {}) => {
+  /* ───────── fetch helpers ───────── */
+  const fetchJson = async (url, opts = {}) => {
     try {
-      const r = await fetch(url, { signal });
+      const r = await fetch(url, opts);
       return r.ok ? r.json() : null;
     } catch {
       return null;
@@ -60,7 +84,9 @@ export default function Admin() {
   const loadEvents = useCallback(
     async (signal) => {
       setLoadingEv(true);
-      const data = await fetchJson("/api/admin-logins", { signal });
+      const data = await fetchJson("/api/admin-logins", {
+        signal,
+      });
       setEvents(Array.isArray(data) ? data : []);
       setLoadingEv(false);
     },
@@ -69,33 +95,35 @@ export default function Admin() {
 
   const loadBlocked = useCallback(
     async (signal) => {
-      const data = await fetchJson("/api/blocked-users", { signal });
-      setBlockedUsers(
-        Array.isArray(data) ? data : data?.blocked ?? []
-      );
+      const data = await fetchJson("/api/blocked-users", {
+        signal,
+      });
+      setBlockedUsers(extractEmails(data));
     },
     []
   );
 
   const loadWhitelist = useCallback(
     async (signal) => {
-      const data = await fetchJson("/api/whitelist", { signal });
-      setWhitelist(
-        Array.isArray(data) ? data : data?.whitelist ?? []
-      );
+      const data = await fetchJson("/api/whitelist", {
+        signal,
+      });
+      setWhitelist(extractEmails(data));
     },
     []
   );
 
   const loadMax = useCallback(
     async (signal) => {
-      const data = await fetchJson("/api/max-users", { signal });
+      const data = await fetchJson("/api/max-users", {
+        signal,
+      });
       setMaxUsers(data?.max?.toString() ?? "");
     },
     []
   );
 
-  /* ─────────── lifecycle ─────────── */
+  /* ───────── lifecycle ───────── */
   useEffect(() => {
     const ctrl = new AbortController();
     loadEvents(ctrl.signal);
@@ -104,7 +132,10 @@ export default function Admin() {
     loadMax(ctrl.signal);
 
     if (autoRefresh) {
-      const id = setInterval(() => loadEvents(ctrl.signal), 30_000);
+      const id = setInterval(
+        () => loadEvents(ctrl.signal),
+        30_000
+      );
       return () => {
         ctrl.abort();
         clearInterval(id);
@@ -119,31 +150,30 @@ export default function Admin() {
     loadMax,
   ]);
 
-  /* ─────────── derived data ─────────── */
+  /* ───────── derived data ───────── */
   const grouped = useMemo(() => {
     const map = new Map();
     events.forEach((e) => {
       const key = e.email.toLowerCase();
-      map.set(key, [...(map.get(key) || []), e]);
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(e);
     });
-    return [...map.entries()].map(([email, all]) => {
-      const last = all.sort(
+    return [...map.entries()].map(([email, all]) => ({
+      email,
+      username: email.split("@")[0],
+      all,
+      last: all.sort(
         (a, b) =>
           new Date(b.timestamp) - new Date(a.timestamp)
-      )[0];
-      return {
-        email,
-        username: email.split("@")[0],
-        last,
-        all,
-      };
-    });
+      )[0],
+    }));
   }, [events]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return grouped.filter(({ username, last }) => {
-      if (q && !username.toLowerCase().includes(q)) return false;
+      if (q && !username.toLowerCase().includes(q))
+        return false;
       const ts = new Date(last.timestamp);
       if (dateFrom && ts < new Date(dateFrom)) return false;
       if (dateTo && ts > new Date(`${dateTo}T23:59:59`))
@@ -156,9 +186,9 @@ export default function Admin() {
     events.map((e) => e.email.toLowerCase())
   ).size;
 
-  /* ─────────── handlers ─────────── */
+  /* ───────── handlers ───────── */
   const toggleExpand = (email) =>
-    setExpanded((prev) => (prev === email ? null : email));
+    setExpanded((p) => (p === email ? null : email));
 
   const exportCsv = () => {
     const rows = [
@@ -175,15 +205,16 @@ export default function Admin() {
     const blob = new Blob([rows.join("\n")], {
       type: "text/csv",
     });
+    const url = URL.createObjectURL(blob);
     const a = Object.assign(document.createElement("a"), {
-      href: URL.createObjectURL(blob),
+      href: url,
       download: `login-events-${Date.now()}.csv`,
     });
     a.click();
-    URL.revokeObjectURL(a.href);
+    URL.revokeObjectURL(url);
   };
 
-  /* ─────────── JSX ─────────── */
+  /* ───────── UI ───────── */
   return (
     <div className="admin-container">
       {/* header */}
@@ -220,14 +251,13 @@ export default function Admin() {
             <strong>{uniqueCnt}</strong>
           </p>
 
+          {/* filters */}
           <div className="controls-row">
             <input
               className="input"
               placeholder="Search username"
               value={search}
-              onChange={(e) =>
-                setSearch(e.target.value)
-              }
+              onChange={(e) => setSearch(e.target.value)}
             />
             <input
               type="date"
@@ -267,6 +297,7 @@ export default function Admin() {
             </label>
           </div>
 
+          {/* login table */}
           <SimpleTable
             head={[
               "Username",
@@ -282,15 +313,15 @@ export default function Admin() {
                   <td>{u.username}</td>
                   <td>{u.email}</td>
                   <td>
-                    {new Date(u.last.timestamp).toLocaleString()}
+                    {new Date(
+                      u.last.timestamp
+                    ).toLocaleString()}
                   </td>
                   <td>{u.last.location ?? "–"}</td>
                   <td>
                     <PrettyBtn
                       variant="secondary"
-                      onClick={() =>
-                        toggleExpand(u.email)
-                      }
+                      onClick={() => toggleExpand(u.email)}
                     >
                       {expanded === u.email
                         ? "Hide"
@@ -298,7 +329,6 @@ export default function Admin() {
                     </PrettyBtn>
                   </td>
                 </tr>
-
                 {expanded === u.email &&
                   u.all.map((rec, i) => (
                     <tr
@@ -348,13 +378,9 @@ export default function Admin() {
                           }),
                         }
                       );
-
-                      // optimistic UI
-                      setBlockedUsers((prev) =>
-                        prev.filter((e) => e !== em)
+                      setBlockedUsers((p) =>
+                        p.filter((e) => e !== em)
                       );
-
-                      // re-sync (optional)
                       loadBlocked();
                     }}
                   >
@@ -365,7 +391,6 @@ export default function Admin() {
             ))}
           </SimpleTable>
 
-          {/* add new blocked user */}
           <div
             className="controls-row"
             style={{ marginTop: ".6rem" }}
@@ -378,9 +403,11 @@ export default function Admin() {
             />
             <PrettyBtn
               onClick={async () => {
-                const inp =
+                const input =
                   document.getElementById("newBL");
-                const v = inp.value.trim().toLowerCase();
+                const v = input.value
+                  .trim()
+                  .toLowerCase();
                 if (!v || blockedUsers.includes(v))
                   return;
 
@@ -393,11 +420,8 @@ export default function Admin() {
                   body: JSON.stringify({ email: v }),
                 });
 
-                inp.value = "";
-                setBlockedUsers((prev) => [
-                  ...prev,
-                  v,
-                ]);
+                input.value = "";
+                setBlockedUsers((p) => [...p, v]);
                 loadBlocked();
               }}
             >
@@ -411,6 +435,7 @@ export default function Admin() {
           <h2 className="section-title">
             3. Max-Users Limit
           </h2>
+
           <div className="controls-row">
             <input
               type="number"
@@ -467,8 +492,8 @@ export default function Admin() {
                           ),
                         }),
                       });
-                      setWhitelist((prev) =>
-                        prev.filter((e) => e !== em)
+                      setWhitelist((p) =>
+                        p.filter((e) => e !== em)
                       );
                       loadWhitelist();
                     }}
@@ -492,9 +517,11 @@ export default function Admin() {
             />
             <PrettyBtn
               onClick={async () => {
-                const inp =
+                const input =
                   document.getElementById("newWL");
-                const v = inp.value.trim().toLowerCase();
+                const v = input.value
+                  .trim()
+                  .toLowerCase();
                 if (!v || whitelist.includes(v))
                   return;
 
@@ -509,11 +536,8 @@ export default function Admin() {
                   }),
                 });
 
-                inp.value = "";
-                setWhitelist((prev) => [
-                  ...prev,
-                  v,
-                ]);
+                input.value = "";
+                setWhitelist((p) => [...p, v]);
                 loadWhitelist();
               }}
             >
