@@ -1,180 +1,417 @@
-// src/App.jsx
-import React, { useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+} from "react";
 import { useAuth0 } from "@auth0/auth0-react";
-
 import CompanyLogo from "./assets/logolatest.jpg";
-import Admin from "./Admin";
-import "./App.css"; // 确保引入了上面提到的 .login-container、.login-card 等样式
+import "./Admin.css";
 
-export default function App() {
-  const {
-    isAuthenticated,
-    isLoading,
-    user,
-    loginWithRedirect,
-    logout,
-    error,
-  } = useAuth0();
-  const [isBlocked, setIsBlocked] = useState(false);
+/* ═════════ helper components ═════════ */
 
+const PrettyBtn = ({ variant = "primary", children, ...rest }) => (
+  <button className={`pbtn pbtn-${variant}`} {...rest}>
+    {children}
+  </button>
+);
 
-  useEffect(() => {
-  const trackLogin = async () => {
-    if (!isAuthenticated || !user) return;
+const SimpleTable = ({ head, children, actionWidth = 96 }) => (
+  <div className="table-wrapper">
+    <table className="events-table">
+      <colgroup>
+        {head.map((_, i) =>
+          i === head.length - 1 ? (
+            <col key={i} style={{ width: actionWidth }} />
+          ) : (
+            <col key={i} />
+          )
+        )}
+      </colgroup>
+      <thead>
+        <tr>{head.map((h) => <th key={h}>{h}</th>)}</tr>
+      </thead>
+      <tbody>{children}</tbody>
+    </table>
+  </div>
+);
 
-    const res = await fetch("/api/track-login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: user.email,
-        userId: user.sub,
-        when: new Date().toISOString(),
-      }),
+/* ═════════ helper: normalise any payload → ["email"] ═════════ */
+
+const extractEmails = (raw) => {
+  const pools = [];
+
+  if (Array.isArray(raw)) pools.push(raw);
+  else if (raw && typeof raw === "object") {
+    ["blocked", "whitelist", "items", "data"].forEach((k) => {
+      if (Array.isArray(raw[k])) pools.push(raw[k]);
     });
+  }
 
-    if (res.status === 403) {
-      setIsBlocked(true);
+  return pools
+    .flat()
+    .map((x) =>
+      typeof x === "string"
+        ? x
+        : x?.email || x?.mail || x?.address || x?.user || x?.username
+    )
+    .filter(Boolean);
+};
+
+/* ═════════ main ═════════ */
+
+export default function Admin() {
+  const { logout } = useAuth0();
+
+  /* ── state ── */
+  const [events, setEvents] = useState([]);
+  const [blocked, setBlocked] = useState([]);
+  const [whitelist, setWhitelist] = useState([]);
+  const [maxUsers, setMaxUsers] = useState("");
+
+  const [loadingEv, setLoadingEv] = useState(false);
+  const [search, setSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [auto, setAuto] = useState(true);
+  const [expanded, setExpanded] = useState(null);
+
+  /* ── helpers ── */
+  const getJSON = (url, opts = {}) =>
+    fetch(url, opts).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+
+  const mergeSet =
+    (setter) =>
+    (list) =>
+      setter((prev) => {
+        const merged = [...new Set([...prev, ...list])];
+        return list.length === 0 ? prev : merged;
+      });
+
+  /* ── loaders ── */
+  const loadEvents = useCallback(
+    async (signal) => {
+      setLoadingEv(true);
+      const data = await getJSON("/api/admin-logins", signal ? { signal } : {});
+      setEvents(Array.isArray(data) ? data : []);
+      setLoadingEv(false);
+    },
+    []
+  );
+
+  const loadBlocked = useCallback(
+    async (signal) => {
+      const data = await getJSON("/api/blocked-users", signal ? { signal } : {});
+      mergeSet(setBlocked)(extractEmails(data));
+    },
+    []
+  );
+
+  const loadWhitelist = useCallback(
+    async (signal) => {
+      const data = await getJSON("/api/whitelist", signal ? { signal } : {});
+      mergeSet(setWhitelist)(extractEmails(data));
+    },
+    []
+  );
+
+  const loadMax = useCallback(async (signal) => {
+    const data = await getJSON("/api/max-users", signal ? { signal } : {});
+    setMaxUsers(data?.max?.toString() ?? "");
+  }, []);
+
+  /* ── bootstrap + auto refresh ── */
+  useEffect(() => {
+    const c = new AbortController();
+    loadEvents(c.signal);
+    loadBlocked(c.signal);
+    loadWhitelist(c.signal);
+    loadMax(c.signal);
+
+    if (auto) {
+      const id = setInterval(() => loadEvents(c.signal), 30_000);
+      return () => {
+        c.abort();
+        clearInterval(id);
+      };
     }
-  };
+    return () => c.abort();
+  }, [auto, loadEvents, loadBlocked, loadWhitelist, loadMax]);
 
-  trackLogin(); // ✅ You must call it
-}, [isAuthenticated, user]);
-//blocked page
-  if (isBlocked) {
-    return (
-      <div className="login-container">
-        <div className="login-card">
-          <h2 style={{ color: "red" }}>Access Denied</h2>
-          <p>Your email has been blocked or the user limit has been exceeded.</p>
-          <button
-            className="login-button"
-            onClick={() => {
-            logout({ logoutParams: { returnTo: window.location.origin } });
-          }}
-          >
-            Log Out and Switch Account
-      </button>
+  /* ── computed ── */
+  const grouped = useMemo(() => {
+    const m = new Map();
+    events.forEach((e) => {
+      const key = e.email.toLowerCase();
+      m.set(key, [...(m.get(key) || []), e]);
+    });
+    return [...m.entries()].map(([email, all]) => ({
+      email,
+      username: email.split("@")[0],
+      all,
+      last: all.reduce((p, c) =>
+        new Date(c.timestamp) > new Date(p.timestamp) ? c : p
+      ),
+    }));
+  }, [events]);
 
-        </div>
-      </div>
-    );
-  }
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    return grouped.filter(({ username, last }) => {
+      if (q && !username.toLowerCase().includes(q)) return false;
+      const ts = new Date(last.timestamp);
+      if (dateFrom && ts < new Date(dateFrom)) return false;
+      if (dateTo && ts > new Date(`${dateTo}T23:59:59`)) return false;
+      return true;
+    });
+  }, [grouped, search, dateFrom, dateTo]);
 
-  // 1. 正在加载
-  if (isLoading) {
-    return (
-      <div className="login-container">
-        <p>Loading…</p>
-      </div>
-    );
-  }
+  const uniqueCnt = new Set(events.map((e) => e.email.toLowerCase())).size;
 
-  // 2. Auth0 错误
-  if (error) {
-    return (
-      <div className="login-container" style={{ color: "red" }}>
-        Authentication Error: {error.message}
-      </div>
-    );
-  }
-
+  /* ═════════ render ═════════ */
   return (
-    <BrowserRouter>
-      <Routes>
-        {/*
-          根路径 "/"：
-            - 未登录（!isAuthenticated）时，渲染原先放在“login-container / login-card”里的内容
-            - 已登录（isAuthenticated）时，渲染主界面（Header + iframe）
-        */}
-        <Route
-          path="/"
-          element={
-            !isAuthenticated ? (
-              /* —— 登录视图 START —— */
-              <div className="login-container">
-                <div className="login-card">
-                  {/* LOGO 保持原先大小 */}
-                  <img src={CompanyLogo} alt="Company Logo" />
-                  <h1>Welcome to Polaris</h1>
-                  <p>Securely log in to access our AI chat assistant.</p>
-                  <button
-                    className="login-button"
-                    onClick={() => loginWithRedirect()}
-                  >
-                    Log In
-                  </button>
-                  <div style={{ marginTop: "1rem", color: "#9ca3af", fontSize: "0.875rem" }}>
-                    © 2025 Polaris
-                  </div>
-                </div>
-              </div>
-              /* —— 登录视图 END —— */
-            ) : (
-              /* —— 已登录视图 START —— */
-              <div
-                style={{
-                  height: "100vh",
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                <header
-                  style={{
-                    backgroundColor: "#1f2937",
-                    color: "white",
-                    padding: "1rem 2rem",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <div>
-                    <strong>Hello, {user.name}</strong>
-                  </div>
-                  <button
-                    style={{
-                      backgroundColor: "#e53e3e",
-                      color: "white",
-                      border: "none",
-                      padding: "0.5rem 1rem",
-                      borderRadius: "4px",
-                      cursor: "pointer",
-                    }}
-                    onClick={() =>
-                      logout({ logoutParams: { returnTo: window.location.origin } })
-                    }
-                  >
-                    Log Out
-                  </button>
-                </header>
-                <main style={{ flex: 1, padding: "1rem" }}>
-                  <iframe
-                    title="Cody Chat"
-                    src="https://embed.cody.bot/9edc7c13-386b-4271-bd76-6b55ccc036ef"
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      border: "1px solid #e5e7eb",
-                      borderRadius: "8px",
-                    }}
-                  />
-                </main>
-              </div>
-              /* —— 已登录视图 END —— */
-            )
-          }
-        />
+    <div className="admin-container">
+      {/* header */}
+      <header className="admin-header">
+        <div className="header-left" onClick={() => (window.location.href = "/")}>
+          <img src={CompanyLogo} alt="" className="header-logo" />
+          <h1 className="header-title">Polaris Admin Dashboard</h1>
+        </div>
+        <PrettyBtn variant="danger" onClick={() => logout()}>
+          Log&nbsp;Out
+        </PrettyBtn>
+      </header>
 
-        {/*
-          访问 "/admin" 时，渲染你当前写好的 Admin.jsx，
-          暂时不做角色校验，后续再加入。
-        */}
-        <Route path="/admin" element={<Admin />} />
+      <main className="admin-main">
+        {/* 1 ─ Current logins */}
+        <section className="section-block">
+          <h2 className="section-title">1. Current Login Events</h2>
+          <p className="muted">
+            Unique Users Logged&nbsp;In: <strong>{uniqueCnt}</strong>
+          </p>
 
-        {/* 其他路径都跳回 "/" */}
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
-    </BrowserRouter>
+          <div className="controls-row">
+            <input
+              className="input"
+              placeholder="Search username"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <input
+              type="date"
+              className="input input-date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+            />
+            <input
+              type="date"
+              className="input input-date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+            />
+            <PrettyBtn onClick={() => loadEvents()} disabled={loadingEv}>
+              {loadingEv ? "Loading…" : "Refresh"}
+            </PrettyBtn>
+            <PrettyBtn variant="secondary" onClick={() => {
+              const rows = [
+                ["Username", "Email", "Timestamp", "IP"].join(","),
+                ...events.map((e) =>
+                  [
+                    e.email.split("@")[0],
+                    e.email,
+                    new Date(e.timestamp).toISOString(),
+                    e.location ?? "",
+                  ].join(",")
+                ),
+              ];
+              const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+              const url = URL.createObjectURL(blob);
+              const a = Object.assign(document.createElement("a"), {
+                href: url,
+                download: `login-events-${Date.now()}.csv`,
+              });
+              a.click();
+              URL.revokeObjectURL(url);
+            }}>
+              Export&nbsp;CSV
+            </PrettyBtn>
+            <label className="autoref-label">
+              <input
+                type="checkbox"
+                checked={auto}
+                onChange={(e) => setAuto(e.target.checked)}
+              />
+              auto&nbsp;30&nbsp;s
+            </label>
+          </div>
+
+          <SimpleTable head={["Username", "Email", "Last Login", "Last IP", "Action"]}>
+            {filtered.map((u) => (
+              <React.Fragment key={u.email}>
+                <tr>
+                  <td>{u.username}</td>
+                  <td>{u.email}</td>
+                  <td>{new Date(u.last.timestamp).toLocaleString()}</td>
+                  <td>{u.last.location ?? "–"}</td>
+                  <td>
+                    <PrettyBtn
+                      variant="secondary"
+                      onClick={() =>
+                        setExpanded((p) => (p === u.email ? null : u.email))
+                      }
+                    >
+                      {expanded === u.email ? "Hide" : "Show"}
+                    </PrettyBtn>
+                  </td>
+                </tr>
+                {expanded === u.email &&
+                  u.all.map((rec, i) => (
+                    <tr className="expand-row" key={rec._id ?? i}>
+                      <td></td>
+                      <td>{rec.email}</td>
+                      <td>{new Date(rec.timestamp).toLocaleString()}</td>
+                      <td>{rec.location ?? "–"}</td>
+                      <td></td>
+                    </tr>
+                  ))}
+              </React.Fragment>
+            ))}
+          </SimpleTable>
+        </section>
+
+        {/* 2 ─ Blocked users */}
+        <section className="section-block">
+          <h2 className="section-title">2. Blocked Users</h2>
+
+          <SimpleTable head={["Email", "Action"]}>
+            {blocked.map((em) => (
+              <tr key={em}>
+                <td>{em}</td>
+                <td>
+                  <PrettyBtn
+                    variant="danger"
+                    onClick={async () => {
+                      await fetch("/api/unblock-user", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ email: em }),
+                      });
+                      mergeSet(setBlocked)([]); // keep others
+                      await loadBlocked();       // full sync
+                    }}
+                  >
+                    Unblock
+                  </PrettyBtn>
+                </td>
+              </tr>
+            ))}
+          </SimpleTable>
+
+          <div className="controls-row" style={{ marginTop: ".6rem" }}>
+            <input id="newBL" className="input" type="email" placeholder="user@example.com" />
+            <PrettyBtn
+              onClick={async () => {
+                const inp = document.getElementById("newBL");
+                const v = inp.value.trim().toLowerCase();
+                if (!v || blocked.includes(v)) return;
+
+                await fetch("/api/block-user", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ email: v }),
+                });
+
+                /* wait a tick so the DB upsert is definitely visible */
+                await new Promise((r) => setTimeout(r, 300));
+                inp.value = "";
+                await loadBlocked();
+              }}
+            >
+              Block
+            </PrettyBtn>
+          </div>
+        </section>
+
+        {/* 3 ─ Max users */}
+        <section className="section-block">
+          <h2 className="section-title">3. Max-Users Limit</h2>
+          <div className="controls-row">
+            <input
+              type="number"
+              className="input"
+              style={{ width: 120 }}
+              value={maxUsers}
+              onChange={(e) => setMaxUsers(e.target.value)}
+            />
+            <PrettyBtn
+              onClick={async () => {
+                await fetch("/api/max-users", {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ max: Number(maxUsers) }),
+                });
+                loadMax();
+              }}
+            >
+              Save
+            </PrettyBtn>
+          </div>
+        </section>
+
+        {/* 4 ─ Whitelist */}
+        <section className="section-block">
+          <h2 className="section-title">4. Whitelist</h2>
+
+          <SimpleTable head={["Email", "Action"]}>
+            {whitelist.map((em) => (
+              <tr key={em}>
+                <td>{em}</td>
+                <td>
+                  <PrettyBtn
+                    variant="danger"
+                    onClick={async () => {
+                      await fetch("/api/whitelist", {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          whitelist: whitelist.filter((e) => e !== em),
+                        }),
+                      });
+                      mergeSet(setWhitelist)([]);
+                      await loadWhitelist();
+                    }}
+                  >
+                    Remove
+                  </PrettyBtn>
+                </td>
+              </tr>
+            ))}
+          </SimpleTable>
+
+          <div className="controls-row" style={{ marginTop: ".6rem" }}>
+            <input id="newWL" className="input" type="email" placeholder="admin@example.com" />
+            <PrettyBtn
+              onClick={async () => {
+                const inp = document.getElementById("newWL");
+                const v = inp.value.trim().toLowerCase();
+                if (!v || whitelist.includes(v)) return;
+
+                await fetch("/api/whitelist", {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ whitelist: [...whitelist, v] }),
+                });
+
+                await new Promise((r) => setTimeout(r, 300));
+                inp.value = "";
+                await loadWhitelist();
+              }}
+            >
+              Add
+            </PrettyBtn>
+          </div>
+        </section>
+      </main>
+    </div>
   );
 }
