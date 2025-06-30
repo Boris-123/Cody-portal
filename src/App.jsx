@@ -47,7 +47,11 @@ export default function App() {
 
   useEffect(() => {
   const trackLogin = async () => {
-    if (!isAuthenticated || !user) return;
+    if (!isAuthenticated || 
+        !user ||
+        typeof window === "undefined" ||
+        window.location.hostname.includes("mini")
+    ) return;
 
     const res = await fetch("/api/track-login", {
       method: "POST",
